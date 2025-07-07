@@ -20,7 +20,7 @@ body {
     --card-foreground: 0 0% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
+    --primary: #0B2F5C;
     --primary-foreground: 0 0% 98%;
     --secondary: 0 0% 96.1%;
     --secondary-foreground: 0 0% 9%;
@@ -48,6 +48,7 @@ body {
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -88,7 +89,68 @@ body {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@layer utilities {
+
+  .Header {
+    @apply relative z-10 bg-white shadow-sm;
+  }
+
+  .Header-Parent {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  .Header-Layout {
+    @apply flex justify-between;
+
+  }
+
+  .nav-link {
+    @apply text-[#EF3D23] font-roboto text-[16px] hover:text-[#0B2F5C] px-3 py-2 font-medium
+  }
+
+  .nav-active {
+    @apply text-[#1479C9] font-roboto text-[16px] hover:text-[#F7941E] px-3 py-2 font-bold
+  }
+
+
+  .primary-heading {
+    @apply text-[#1479C9] font-roboto text-lg font-bold;
+  }
+
+  .secondary-heading {
+    @apply text-[#EF3D23] font-roboto font-medium text-sm;
+  }
+
+  .secondary-link {
+    @apply text-[#EF3D23] font-roboto font-medium text-[16px] underline;
+  }
+
+  .Parent-Layout {
+    @apply px-8;
+
+  }
+
+  .Parent-Child {
+    @apply mx-auto max-w-6xl;
+  }
+
+  .social-media-icon {
+    @apply h-6 w-6 fill-[#1479C9] shrink-0 align-middle size-min;
+  }
+
+  .social-media-small-icon {
+    @apply h-6 w-6 fill-[#fff] shrink-0 align-middle size-min;
+  }
+
+  .Circle {
+    @apply rounded-[50%] w-12 opacity-95 h-12 bg-[#1479C9] flex justify-center items-center;
+
+  }
+
 }
