@@ -12,6 +12,9 @@ const config: Config = {
 	],
 	theme: {
 		extend: {
+			textShadow: {
+				'custom': '0px 1px 4px rgba(0, 0, 0, 0.6)',
+			},
 			boxShadow:
 			{
 				'level1': '0 2px 6px 0 #4f5e7114, 0 0 2px 0 #4f5e711f, 0 0 1px 0 #292f374d'
