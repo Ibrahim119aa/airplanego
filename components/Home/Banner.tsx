@@ -1,4 +1,5 @@
 "use client"
+
 import { useState, useRef, useEffect } from "react"
 import { Combobox } from "@headlessui/react"
 import { ChevronUpDownIcon } from "@heroicons/react/20/solid"
@@ -7,7 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { User, Calendar, X, ChevronRight, ChevronLeft, ArrowLeftRight, Luggage, Users } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { User, Calendar, X, ChevronRight, ChevronLeft, ArrowLeftRight, Luggage, Users, Plus, Minus } from "lucide-react"
 
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 const months = [
@@ -71,9 +73,16 @@ const Banner = () => {
   const [selectedDays, setSelectedDays] = useState<number | null>(null)
   const [tripType, setTripType] = useState("return") // Add trip type state
 
-  // New state for passengers and bags
-  const [passengerCount, setPassengerCount] = useState("1")
-  const [bagCount, setBagCount] = useState("0")
+  // Updated passenger and baggage state
+  const [passengers, setPassengers] = useState({
+    adults: 1,
+    children: 0,
+    infants: 0,
+  })
+  const [baggage, setBaggage] = useState({
+    cabin: 0,
+    checked: 0,
+  })
   const [cabinClass, setCabinClass] = useState("economy")
 
   // Separate query states for from and to locations - Fixed binding issue
@@ -133,16 +142,15 @@ const Banner = () => {
       return
     }
 
-    // For return trips, handle both departure and return dates
-    // If clicking on already selected start date, deselect it
+    // For return trips - Enhanced logic for deselecting dates
+    // If clicking on already selected start date, deselect it completely
     if (day === startDate) {
-      setStartDate(endDate) // Move end date to start if it exists
-      setEndDate(null)
-      setSelectingStart(endDate ? false : true) // If we moved end to start, we're now selecting end
+      setStartDate(null)
+      setSelectingStart(true) // Reset to selecting start date
       return
     }
 
-    // If clicking on already selected end date, deselect it
+    // If clicking on already selected end date, deselect it completely
     if (day === endDate) {
       setEndDate(null)
       setSelectingStart(false) // Continue selecting end date
@@ -193,6 +201,39 @@ const Banner = () => {
     if (price <= 206) return "text-emerald-600"
     if (price <= 208) return "text-blue-600"
     return "text-gray-600"
+  }
+
+  // Passenger management functions
+  const updatePassengers = (type: "adults" | "children" | "infants", action: "increment" | "decrement") => {
+    setPassengers((prev) => {
+      const newValue = action === "increment" ? prev[type] + 1 : Math.max(0, prev[type] - 1)
+      // Ensure at least one adult
+      if (type === "adults" && newValue === 0) return prev
+      return { ...prev, [type]: newValue }
+    })
+  }
+
+  // Baggage management functions
+  const updateBaggage = (type: "cabin" | "checked", action: "increment" | "decrement") => {
+    setBaggage((prev) => ({
+      ...prev,
+      [type]: action === "increment" ? prev[type] + 1 : Math.max(0, prev[type] - 1),
+    }))
+  }
+
+  // Helper function to get passenger summary text
+  const getPassengerSummary = () => {
+    const total = passengers.adults + passengers.children + passengers.infants
+    if (total === 1) return "1 Passenger"
+    return `${total} Passengers`
+  }
+
+  // Helper function to get baggage summary text
+  const getBagageSummary = () => {
+    const total = baggage.cabin + baggage.checked
+    if (total === 0) return "No Bags"
+    if (total === 1) return "1 Bag"
+    return `${total} Bags`
   }
 
   const renderCalendarDays = () => {
@@ -276,22 +317,6 @@ const Banner = () => {
     setToQuery(tempQuery)
   }
 
-  // Helper function to format passenger text
-  const getPassengerText = (count: string) => {
-    const num = Number.parseInt(count)
-    if (num === 1) return "1 Passenger"
-    if (num <= 9) return `${num} Passengers`
-    return "9+ Passengers"
-  }
-
-  // Helper function to format bag text
-  const getBagText = (count: string) => {
-    const num = Number.parseInt(count)
-    if (num === 0) return "No Bags"
-    if (num === 1) return "1 Bag"
-    return `${num} Bags`
-  }
-
   const cities = [
     "Karachi, Pakistan",
     "Dubai, UAE",
@@ -360,100 +385,193 @@ const Banner = () => {
               </Select>
 
               {/* Enhanced Passenger Selector */}
-              <Select value={passengerCount} onValueChange={setPassengerCount}>
-                <SelectTrigger className="w-44">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">
-                    <div className="flex items-center">
-                      <User className="w-4 h-4 mr-2 text-blue-600" />1 Passenger
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="2">
-                    <div className="flex items-center">
-                      <Users className="w-4 h-4 mr-2 text-blue-600" />2 Passengers
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="3">
-                    <div className="flex items-center">
-                      <Users className="w-4 h-4 mr-2 text-blue-600" />3 Passengers
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="4">
-                    <div className="flex items-center">
-                      <Users className="w-4 h-4 mr-2 text-blue-600" />4 Passengers
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="5">
-                    <div className="flex items-center">
-                      <Users className="w-4 h-4 mr-2 text-blue-600" />5 Passengers
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="6">
-                    <div className="flex items-center">
-                      <Users className="w-4 h-4 mr-2 text-blue-600" />6 Passengers
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="7">
-                    <div className="flex items-center">
-                      <Users className="w-4 h-4 mr-2 text-blue-600" />7 Passengers
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="8">
-                    <div className="flex items-center">
-                      <Users className="w-4 h-4 mr-2 text-blue-600" />8 Passengers
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="9">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-44 justify-between bg-transparent">
                     <div className="flex items-center">
                       <Users className="w-4 h-4 mr-2 text-blue-600" />
-                      9+ Passengers
+                      {getPassengerSummary()}
                     </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                    <ChevronUpDownIcon className="h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-4">
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm text-gray-900">Passengers</h4>
+
+                    {/* Adults */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <User className="w-4 h-4 text-gray-600" />
+                        <div>
+                          <div className="text-sm font-medium">Adults</div>
+                          <div className="text-xs text-gray-500">Over 11</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0 bg-transparent"
+                          onClick={() => updatePassengers("adults", "decrement")}
+                          disabled={passengers.adults <= 1}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="w-8 text-center text-sm">{passengers.adults}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0 bg-transparent"
+                          onClick={() => updatePassengers("adults", "increment")}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Children */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <User className="w-4 h-4 text-gray-600" />
+                        <div>
+                          <div className="text-sm font-medium">Children</div>
+                          <div className="text-xs text-gray-500">2 - 11</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0 bg-transparent"
+                          onClick={() => updatePassengers("children", "decrement")}
+                          disabled={passengers.children <= 0}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="w-8 text-center text-sm">{passengers.children}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0 bg-transparent"
+                          onClick={() => updatePassengers("children", "increment")}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Infants */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <User className="w-4 h-4 text-gray-600" />
+                        <div>
+                          <div className="text-sm font-medium">Infants</div>
+                          <div className="text-xs text-gray-500">Under 2</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0 bg-transparent"
+                          onClick={() => updatePassengers("infants", "decrement")}
+                          disabled={passengers.infants <= 0}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="w-8 text-center text-sm">{passengers.infants}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0 bg-transparent"
+                          onClick={() => updatePassengers("infants", "increment")}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
 
               {/* Enhanced Baggage Selector */}
-              <Select value={bagCount} onValueChange={setBagCount}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-32 justify-between bg-transparent">
                     <div className="flex items-center">
                       <Luggage className="w-4 h-4 mr-2 text-orange-600" />
-                      No Bags
+                      {getBagageSummary()}
                     </div>
-                  </SelectItem>
-                  <SelectItem value="1">
-                    <div className="flex items-center">
-                      <Luggage className="w-4 h-4 mr-2 text-orange-600" />1 Bag
+                    <ChevronUpDownIcon className="h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-4">
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm text-gray-900">Bags</h4>
+
+                    {/* Cabin Baggage */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Luggage className="w-4 h-4 text-gray-600" />
+                        <div>
+                          <div className="text-sm font-medium">Cabin baggage</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0 bg-transparent"
+                          onClick={() => updateBaggage("cabin", "decrement")}
+                          disabled={baggage.cabin <= 0}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="w-8 text-center text-sm">{baggage.cabin}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0 bg-transparent"
+                          onClick={() => updateBaggage("cabin", "increment")}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
-                  </SelectItem>
-                  <SelectItem value="2">
-                    <div className="flex items-center">
-                      <Luggage className="w-4 h-4 mr-2 text-orange-600" />2 Bags
+
+                    {/* Checked Baggage */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Luggage className="w-4 h-4 text-gray-600" />
+                        <div>
+                          <div className="text-sm font-medium">Checked baggage</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0 bg-transparent"
+                          onClick={() => updateBaggage("checked", "decrement")}
+                          disabled={baggage.checked <= 0}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="w-8 text-center text-sm">{baggage.checked}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0 bg-transparent"
+                          onClick={() => updateBaggage("checked", "increment")}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
-                  </SelectItem>
-                  <SelectItem value="3">
-                    <div className="flex items-center">
-                      <Luggage className="w-4 h-4 mr-2 text-orange-600" />3 Bags
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="4">
-                    <div className="flex items-center">
-                      <Luggage className="w-4 h-4 mr-2 text-orange-600" />4 Bags
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="5">
-                    <div className="flex items-center">
-                      <Luggage className="w-4 h-4 mr-2 text-orange-600" />
-                      5+ Bags
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Location and Date Inputs */}
@@ -481,7 +599,6 @@ const Banner = () => {
                           <ChevronUpDownIcon className="h-5 w-5 text-green-600" />
                         </Combobox.Button>
                       </div>
-
                       {/* Dropdown Panel */}
                       <Combobox.Options className="absolute mt-2 w-full z-10 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto text-sm text-gray-900">
                         <div className="px-4 pt-3 pb-1 text-xs font-medium text-gray-500 uppercase">Suggestions</div>
@@ -538,7 +655,6 @@ const Banner = () => {
                           <ChevronUpDownIcon className="h-5 w-5 text-orange-600" />
                         </Combobox.Button>
                       </div>
-
                       {/* Dropdown Panel */}
                       <Combobox.Options className="absolute mt-2 w-full z-10 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto text-sm text-gray-900">
                         <div className="px-4 pt-3 pb-1 text-xs font-medium text-gray-500 uppercase">Suggestions</div>
@@ -589,7 +705,6 @@ const Banner = () => {
                       </button>
                     </div>
                   </div>
-
                   {showCalender && (
                     <div
                       ref={calendarRef}
@@ -607,7 +722,6 @@ const Banner = () => {
                           <ChevronRight className="h-4 w-4" />
                         </Button>
                       </div>
-
                       {/* Days of Week Header */}
                       <div className="grid grid-cols-7 gap-1">
                         {daysOfWeek.map((day) => (
@@ -616,10 +730,8 @@ const Banner = () => {
                           </div>
                         ))}
                       </div>
-
                       {/* Calendar Grid */}
                       <div className="grid grid-cols-7 gap-1">{renderCalendarDays()}</div>
-
                       {/* Helper text for trip type */}
                       <div className="text-xs text-gray-500 text-center p-2 bg-gray-50 rounded-md">
                         {tripType === "oneway" ? (
@@ -640,7 +752,6 @@ const Banner = () => {
                           </div>
                         )}
                       </div>
-
                       {/* Clear dates button */}
                       {(startDate || endDate) && (
                         <div className="flex justify-center">
