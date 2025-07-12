@@ -9,7 +9,7 @@ const Header = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
 
     return (
-        <header className="Header">
+        <div className="Header">
             <div className="Header-Parent">
                 <div className="Header-Layout">
                     {/* Logo */}
@@ -104,7 +104,7 @@ const Header = () => {
                     </div>
                 </div>
             )}
-        </header>
+        </div>
     )
 }
 export default Header;

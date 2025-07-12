@@ -63,7 +63,6 @@ const pricingData = {
 
 const Banner = () => {
   const todayDate = new Date()
-  todayDate.setHours(0, 0, 0, 0) // Normalize today's date to start of day
   const todayDay = todayDate.getDate()
   const todayMonth = todayDate.getMonth() // 0-indexed
   const todayYear = todayDate.getFullYear()
@@ -71,12 +70,14 @@ const Banner = () => {
   const [fromLocation, setFromLocation] = useState<string | null>("Karachi, Pakistan")
   const [toLocation, setToLocation] = useState<string | null>("Dubai, UAE")
   const [showCalender, setShowCalender] = useState<boolean>(false)
-  const [startDate, setStartDate] = useState<Date | null>(new Date(todayYear, todayMonth, todayDay)) // Store as Date object
-  const [endDate, setEndDate] = useState<Date | null>(null) // Store as Date object
+  const [startDate, setStartDate] = useState<number | null>(todayDay) // Pre-select today
+  const [endDate, setEndDate] = useState<number | null>(null)
   const [selectingStart, setSelectingStart] = useState(true)
   const [currentMonth, setCurrentMonth] = useState(todayMonth) // Initialize with current month
   const [currentYear, setCurrentYear] = useState(todayYear) // Initialize with current year
+  const [selectedDays, setSelectedDays] = useState<number | null>(null)
   const [tripType, setTripType] = useState("return") // Add trip type state
+  // Updated passenger and baggage state
   const [passengers, setPassengers] = useState({
     adults: 1,
     children: 0,
@@ -87,17 +88,24 @@ const Banner = () => {
     checked: 0,
   })
   const [cabinClass, setCabinClass] = useState("economy")
+
+  // Separate query states for from and to locations - Fixed binding issue
   const [fromQuery, setFromQuery] = useState("")
   const [toQuery, setToQuery] = useState("")
+
+  // Ref for calendar container to enable auto-scroll
   const calendarRef = useRef<HTMLDivElement>(null)
-  const n = useRouter()
 
-  const handleSearch = () => {
-    n.push("/flight")
+  const n=useRouter();
+  const handleSearch=()=>
+  {
+    n.push("/flight");
+    
   }
-
+  // Auto-scroll effect when calendar opens
   useEffect(() => {
     if (showCalender && calendarRef.current) {
+      // Small delay to ensure the calendar is rendered
       setTimeout(() => {
         calendarRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -119,85 +127,87 @@ const Banner = () => {
 
   const formatSelectedDate = () => {
     if (!startDate && !endDate) return ""
-
-    const format = (date: Date) => `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`
-
+    // For one-way trips, only show departure date
     if (tripType === "oneway") {
-      return startDate ? format(startDate) : ""
+      return startDate ? `${months[currentMonth]} ${startDate}` : ""
     }
-
-    if (startDate && !endDate) return format(startDate)
-    if (startDate && endDate) {
-      if (startDate.toDateString() === endDate.toDateString()) {
-        return format(startDate)
-      }
-      return `${format(startDate)} - ${format(endDate)}`
-    }
+    // For return trips, show both dates
+    if (startDate && !endDate) return `${months[currentMonth]} ${startDate}`
+    if (startDate && endDate) return `${months[currentMonth]} ${startDate} - ${months[currentMonth]} ${endDate}`
     return ""
   }
 
   const handleDateClick = (day: number) => {
-    const clickedDate = new Date(currentYear, currentMonth, day)
-    clickedDate.setHours(0, 0, 0, 0) // Normalize clicked date
-
-    const isPastDate = clickedDate < todayDate
+    const isPastDate =
+      currentYear < todayYear ||
+      (currentYear === todayYear && currentMonth < todayMonth) ||
+      (currentYear === todayYear && currentMonth === todayMonth && day < todayDay)
 
     if (isPastDate) {
       return // Do not allow selection of past dates
     }
 
+    // For one-way trips, only allow selecting departure date
     if (tripType === "oneway") {
-      if (startDate && clickedDate.toDateString() === startDate.toDateString()) {
+      // If clicking on already selected date, deselect it
+      if (day === startDate) {
         setStartDate(null)
       } else {
-        setStartDate(clickedDate)
-        setShowCalender(false)
+        setStartDate(day)
+        setShowCalender(false) // Close calendar after selecting the date for one-way trip
       }
       setEndDate(null)
       return
     }
 
-    // For return trips
-    if (startDate && clickedDate.toDateString() === startDate.toDateString()) {
+    // For return trips - Enhanced logic for deselecting dates
+    // If clicking on already selected start date, deselect it completely
+    if (day === startDate) {
       setStartDate(null)
+      setSelectingStart(true) // Reset to selecting start date
+      return
+    }
+    // If clicking on already selected end date, deselect it completely
+    if (day === endDate) {
       setEndDate(null)
-      setSelectingStart(true)
+      setSelectingStart(false) // Continue selecting end date
       return
     }
 
-    if (endDate && clickedDate.toDateString() === endDate.toDateString()) {
-      setEndDate(null)
-      setSelectingStart(false)
-      return
-    }
-
+    // If no dates are selected, or we're selecting start
     if (!startDate || selectingStart) {
-      setStartDate(clickedDate)
+      setStartDate(day)
       setEndDate(null)
-      setSelectingStart(false)
+      setSelectingStart(false) // Next click will be for end date
       return
     }
 
+    // If we're selecting end date
     if (!selectingStart) {
-      if (clickedDate < startDate) {
-        setEndDate(startDate)
-        setStartDate(clickedDate)
+      if (day < startDate) {
+        // If selected day is before start date, make it the new start date
+        setEndDate(startDate) // Current start becomes end
+        setStartDate(day) // Selected day becomes start
       } else {
-        setEndDate(clickedDate)
-        setShowCalender(false)
+        // Normal case: selected day becomes end date
+        setEndDate(day)
+        setShowCalender(false) // Close calendar after selecting both dates
       }
-      setSelectingStart(true)
+      setSelectingStart(true) // Reset for next selection
     }
   }
 
+  // Handle trip type change
   const handleTripTypeChange = (value: string) => {
     setTripType(value)
+    // Reset dates when switching trip types
     if (value === "oneway") {
       setEndDate(null)
       setSelectingStart(true)
     }
   }
 
+  // Clear all selected dates
   const clearDates = () => {
     setStartDate(null)
     setEndDate(null)
@@ -210,14 +220,17 @@ const Banner = () => {
     return "text-gray-600"
   }
 
+  // Passenger management functions
   const updatePassengers = (type: "adults" | "children" | "infants", action: "increment" | "decrement") => {
     setPassengers((prev) => {
       const newValue = action === "increment" ? prev[type] + 1 : Math.max(0, prev[type] - 1)
+      // Ensure at least one adult
       if (type === "adults" && newValue === 0) return prev
       return { ...prev, [type]: newValue }
     })
   }
 
+  // Baggage management functions
   const updateBaggage = (type: "cabin" | "checked", action: "increment" | "decrement") => {
     setBaggage((prev) => ({
       ...prev,
@@ -225,12 +238,14 @@ const Banner = () => {
     }))
   }
 
+  // Helper function to get passenger summary text
   const getPassengerSummary = () => {
     const total = passengers.adults + passengers.children + passengers.infants
     if (total === 1) return "1 Passenger"
     return `${total} Passengers`
   }
 
+  // Helper function to get baggage summary text
   const getBagageSummary = () => {
     const total = baggage.cabin + baggage.checked
     if (total === 0) return "No Bags"
@@ -248,16 +263,15 @@ const Banner = () => {
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(currentYear, currentMonth, day)
-      date.setHours(0, 0, 0, 0) // Normalize date for comparison
-
       const price = pricingData[day as keyof typeof pricingData]
-      const isStartDate = startDate && date.toDateString() === startDate.toDateString()
-      const isEndDate = tripType === "return" && endDate && date.toDateString() === endDate.toDateString()
-      const inRange = tripType === "return" && startDate && endDate && date > startDate && date < endDate
-      const isToday = date.toDateString() === todayDate.toDateString()
-      const isPastDate = date < todayDate
-
+      const isStartDate = day === startDate
+      const isEndDate = tripType === "return" && day === endDate
+      const inRange = tripType === "return" && startDate && endDate && day > startDate && day < endDate
+      const isToday = day === todayDay && currentMonth === todayMonth && currentYear === todayYear
+      const isPastDate =
+        currentYear < todayYear ||
+        (currentYear === todayYear && currentMonth < todayMonth) ||
+        (currentYear === todayYear && currentMonth === todayMonth && day < todayDay)
       const isSelected = isStartDate || isEndDate
 
       days.push(
@@ -310,6 +324,7 @@ const Banner = () => {
 
   const navigateMonth = (direction: "prev" | "next") => {
     if (direction === "prev") {
+      // Prevent navigating to a month before the current real month
       if (currentYear === todayYear && currentMonth === todayMonth) {
         return // Do not navigate back if already in the current month
       }
@@ -327,10 +342,12 @@ const Banner = () => {
         setCurrentMonth(currentMonth + 1)
       }
     }
-    // Do NOT clear startDate or endDate when navigating months.
-    // The user is just changing the calendar view.
+    // Clear the end date and reset selection to start date when month changes
+    setEndDate(null)
+    setSelectingStart(true)
   }
 
+  // Updated swap function
   const swapLocations = () => {
     const tempLocation = fromLocation
     const tempQuery = fromQuery
@@ -351,34 +368,18 @@ const Banner = () => {
     "Sydney, Australia",
   ]
 
+  // Filter cities for "From" location - Fixed to use separate queries
   const filteredFromCities =
     fromQuery === "" ? cities : cities.filter((city) => city.toLowerCase().includes(fromQuery.toLowerCase()))
-
+  // Filter cities for "To" location - Fixed to use separate queries
   const filteredToCities =
     toQuery === "" ? cities : cities.filter((city) => city.toLowerCase().includes(toQuery.toLowerCase()))
 
   return (
-    <div className="h-[50rem] bg-gradient-to-br from-[#1479C9] via-[#0B2F5C] to-[#EF3D23] relative overflow-hidden">
-      <main className=" relative z-10 max-w-7xl  mx-auto  sm:px-6 lg:px-8 pt-16 pb-24">
-        {/* Hero Text */}
-        <div className="text-center mb-12">
-          <h1
-            data-aos="fade-up"
-            data-aos-duration="1000"
-            className="text-4xl text-shadow-custom md:text-6xl lg:text-7xl font-bold text-[#ffffff] font-poppins mb-4 tracking-wider"
-          >
-            YOU GOD UWL SUCK KC
-          </h1>
-          <p
-            data-aos="fade-down"
-            data-aos-duration="1000"
-            className="text-shadow-custom text-xl md:text-2xl text-[#ffffff] font-bold max-w-2xl mx-auto"
-          >
-            Book cheap flights other sites simply can't find.
-          </p>
-        </div>
-        {/* Search Form */}
-        <Card data-aos="zoom-in" data-aos-duration="1000" className=" max-w-4xl relative mx-auto shadow-2xl">
+    <div className=" bg-white  relative overflow-hidden">
+      <main className=" relative z-10 w-full    sm:px-6   ">
+       
+        <Card data-aos="zoom-in" data-aos-duration="1000" className=" w-full  relative  shadow-2xl">
           <CardContent className="p-6">
             {/* Trip Options */}
             <div className="flex flex-wrap items-center gap-4 mb-6">
@@ -779,21 +780,10 @@ const Banner = () => {
               </div>
               {/* Search Button */}
               <div className="lg:col-span-1 flex self-center ">
-                <Button
-                  onClick={handleSearch}
-                  className="w-full bg-[#1479C9] hover:bg-sky-600 text-white font-semibold py-3"
-                >
-                  Search
-                </Button>
+                <Button onClick={handleSearch} className="w-full bg-[#1479C9] hover:bg-sky-600 text-white font-semibold py-3">Search</Button>
               </div>
             </div>
-            {/* Booking.com Integration */}
-            <div className="flex items-end justify-end space-x-2">
-              <Checkbox id="accommodation" defaultChecked />
-              <label htmlFor="accommodation" className="text-sm text-gray-700">
-                Check accommodation with <span className="text-blue-600 font-semibold">Booking.com</span>
-              </label>
-            </div>
+            
           </CardContent>
         </Card>
       </main>
