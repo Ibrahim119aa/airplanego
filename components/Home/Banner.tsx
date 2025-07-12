@@ -26,7 +26,6 @@ const months = [
   "November",
   "December",
 ]
-
 const pricingData = {
   1: 219,
   2: 219,
@@ -62,17 +61,21 @@ const pricingData = {
 }
 
 const Banner = () => {
+  const todayDate = new Date()
+  const todayDay = todayDate.getDate()
+  const todayMonth = todayDate.getMonth() // 0-indexed
+  const todayYear = todayDate.getFullYear()
+
   const [fromLocation, setFromLocation] = useState<string | null>("Karachi, Pakistan")
   const [toLocation, setToLocation] = useState<string | null>("Dubai, UAE")
   const [showCalender, setShowCalender] = useState<boolean>(false)
-  const [startDate, setStartDate] = useState<number | null>(null)
+  const [startDate, setStartDate] = useState<number | null>(todayDay) // Pre-select today
   const [endDate, setEndDate] = useState<number | null>(null)
   const [selectingStart, setSelectingStart] = useState(true)
-  const [currentMonth, setCurrentMonth] = useState(6) // July (0-indexed)
-  const [currentYear, setCurrentYear] = useState(2025)
+  const [currentMonth, setCurrentMonth] = useState(todayMonth) // Initialize with current month
+  const [currentYear, setCurrentYear] = useState(todayYear) // Initialize with current year
   const [selectedDays, setSelectedDays] = useState<number | null>(null)
   const [tripType, setTripType] = useState("return") // Add trip type state
-
   // Updated passenger and baggage state
   const [passengers, setPassengers] = useState({
     adults: 1,
@@ -91,8 +94,6 @@ const Banner = () => {
 
   // Ref for calendar container to enable auto-scroll
   const calendarRef = useRef<HTMLDivElement>(null)
-
-  const today = 6
 
   // Auto-scroll effect when calendar opens
   useEffect(() => {
@@ -130,6 +131,15 @@ const Banner = () => {
   }
 
   const handleDateClick = (day: number) => {
+    const isPastDate =
+      currentYear < todayYear ||
+      (currentYear === todayYear && currentMonth < todayMonth) ||
+      (currentYear === todayYear && currentMonth === todayMonth && day < todayDay)
+
+    if (isPastDate) {
+      return // Do not allow selection of past dates
+    }
+
     // For one-way trips, only allow selecting departure date
     if (tripType === "oneway") {
       // If clicking on already selected date, deselect it
@@ -137,6 +147,7 @@ const Banner = () => {
         setStartDate(null)
       } else {
         setStartDate(day)
+        setShowCalender(false) // Close calendar after selecting the date for one-way trip
       }
       setEndDate(null)
       return
@@ -149,7 +160,6 @@ const Banner = () => {
       setSelectingStart(true) // Reset to selecting start date
       return
     }
-
     // If clicking on already selected end date, deselect it completely
     if (day === endDate) {
       setEndDate(null)
@@ -250,12 +260,18 @@ const Banner = () => {
       const isStartDate = day === startDate
       const isEndDate = tripType === "return" && day === endDate
       const inRange = tripType === "return" && startDate && endDate && day > startDate && day < endDate
+      const isToday = day === todayDay && currentMonth === todayMonth && currentYear === todayYear
+      const isPastDate =
+        currentYear < todayYear ||
+        (currentYear === todayYear && currentMonth < todayMonth) ||
+        (currentYear === todayYear && currentMonth === todayMonth && day < todayDay)
       const isSelected = isStartDate || isEndDate
 
       days.push(
         <div
           key={day}
           className={`h-16 flex flex-col items-center justify-center cursor-pointer rounded-lg transition-all duration-200 relative border-2
+            ${isPastDate ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""}
             ${
               isStartDate
                 ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-600 shadow-lg transform scale-105"
@@ -263,14 +279,25 @@ const Banner = () => {
                   ? "bg-gradient-to-r from-green-500 to-green-600 text-white border-green-600 shadow-lg transform scale-105"
                   : inRange
                     ? "bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 text-gray-800"
-                    : "hover:bg-gray-50 border-transparent hover:border-gray-200 hover:shadow-md"
+                    : isPastDate
+                      ? "" // No hover effect for past dates
+                      : "hover:bg-gray-50 border-transparent hover:border-gray-200 hover:shadow-md"
             }
+            ${isToday && !isSelected && !isPastDate ? "border-blue-400 bg-blue-50" : ""}
           `}
-          onClick={() => handleDateClick(day)}
+          onClick={() => !isPastDate && handleDateClick(day)} // Only allow click if not a past date
         >
-          <span className={`text-sm font-semibold ${isSelected ? "text-white" : "text-gray-900"}`}>{day}</span>
+          <span
+            className={`text-sm font-semibold ${isSelected ? "text-white" : isPastDate ? "text-gray-400" : "text-gray-900"}`}
+          >
+            {day}
+          </span>
           {price && (
-            <span className={`text-xs font-medium ${isSelected ? "text-white" : getPriceColor(price)}`}>${price}</span>
+            <span
+              className={`text-xs font-medium ${isSelected ? "text-white" : isPastDate ? "text-gray-400" : getPriceColor(price)}`}
+            >
+              ${price}
+            </span>
           )}
           {isStartDate && (
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full flex items-center justify-center">
@@ -285,12 +312,15 @@ const Banner = () => {
         </div>,
       )
     }
-
     return days
   }
 
   const navigateMonth = (direction: "prev" | "next") => {
     if (direction === "prev") {
+      // Prevent navigating to a month before the current real month
+      if (currentYear === todayYear && currentMonth === todayMonth) {
+        return // Do not navigate back if already in the current month
+      }
       if (currentMonth === 0) {
         setCurrentMonth(11)
         setCurrentYear(currentYear - 1)
@@ -305,6 +335,9 @@ const Banner = () => {
         setCurrentMonth(currentMonth + 1)
       }
     }
+    // Clear the end date and reset selection to start date when month changes
+    setEndDate(null)
+    setSelectingStart(true)
   }
 
   // Updated swap function
@@ -331,7 +364,6 @@ const Banner = () => {
   // Filter cities for "From" location - Fixed to use separate queries
   const filteredFromCities =
     fromQuery === "" ? cities : cities.filter((city) => city.toLowerCase().includes(fromQuery.toLowerCase()))
-
   // Filter cities for "To" location - Fixed to use separate queries
   const filteredToCities =
     toQuery === "" ? cities : cities.filter((city) => city.toLowerCase().includes(toQuery.toLowerCase()))
@@ -356,7 +388,6 @@ const Banner = () => {
             Book cheap flights other sites simply can't find.
           </p>
         </div>
-
         {/* Search Form */}
         <Card data-aos="zoom-in" data-aos-duration="1000" className=" max-w-4xl relative mx-auto shadow-2xl">
           <CardContent className="p-6">
@@ -371,7 +402,6 @@ const Banner = () => {
                   <SelectItem value="oneway">One way</SelectItem>
                 </SelectContent>
               </Select>
-
               <Select value={cabinClass} onValueChange={setCabinClass}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
@@ -383,7 +413,6 @@ const Banner = () => {
                   <SelectItem value="first">First</SelectItem>
                 </SelectContent>
               </Select>
-
               {/* Enhanced Passenger Selector */}
               <Popover>
                 <PopoverTrigger asChild>
@@ -398,7 +427,6 @@ const Banner = () => {
                 <PopoverContent className="w-80 p-4">
                   <div className="space-y-4">
                     <h4 className="font-medium text-sm text-gray-900">Passengers</h4>
-
                     {/* Adults */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
@@ -429,7 +457,6 @@ const Banner = () => {
                         </Button>
                       </div>
                     </div>
-
                     {/* Children */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
@@ -460,7 +487,6 @@ const Banner = () => {
                         </Button>
                       </div>
                     </div>
-
                     {/* Infants */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
@@ -494,7 +520,6 @@ const Banner = () => {
                   </div>
                 </PopoverContent>
               </Popover>
-
               {/* Enhanced Baggage Selector */}
               <Popover>
                 <PopoverTrigger asChild>
@@ -509,7 +534,6 @@ const Banner = () => {
                 <PopoverContent className="w-80 p-4">
                   <div className="space-y-4">
                     <h4 className="font-medium text-sm text-gray-900">Bags</h4>
-
                     {/* Cabin Baggage */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
@@ -539,7 +563,6 @@ const Banner = () => {
                         </Button>
                       </div>
                     </div>
-
                     {/* Checked Baggage */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
@@ -573,7 +596,6 @@ const Banner = () => {
                 </PopoverContent>
               </Popover>
             </div>
-
             {/* Location and Date Inputs */}
             <div className="grid grid-cols-1 lg:grid-cols-10 gap-2 mb-6">
               {/* From Location */}
@@ -621,7 +643,6 @@ const Banner = () => {
                   </Combobox>
                 </div>
               </div>
-
               <Button
                 variant="ghost"
                 size="sm"
@@ -631,7 +652,6 @@ const Banner = () => {
               >
                 <ArrowLeftRight className="w-4 h-4 text-[#1479C9]" />
               </Button>
-
               {/* To Location */}
               <div className="lg:col-span-3">
                 <div className="relative">
@@ -677,7 +697,6 @@ const Banner = () => {
                   </Combobox>
                 </div>
               </div>
-
               {/* Departure Date */}
               <div className="lg:col-span-3">
                 <div>
@@ -712,7 +731,12 @@ const Banner = () => {
                     >
                       {/* Calendar Header */}
                       <div className="flex items-center justify-between">
-                        <Button variant="ghost" size="sm" onClick={() => navigateMonth("prev")}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigateMonth("prev")}
+                          disabled={currentYear === todayYear && currentMonth === todayMonth} // Disable if it's the current month
+                        >
                           <ChevronLeft className="h-4 w-4" />
                         </Button>
                         <h3 className="font-semibold text-gray-900 text-lg">
@@ -764,13 +788,11 @@ const Banner = () => {
                   )}
                 </div>
               </div>
-
               {/* Search Button */}
               <div className="lg:col-span-1 flex self-center ">
                 <Button className="w-full bg-[#1479C9] hover:bg-sky-600 text-white font-semibold py-3">Search</Button>
               </div>
             </div>
-
             {/* Booking.com Integration */}
             <div className="flex items-end justify-end space-x-2">
               <Checkbox id="accommodation" defaultChecked />
