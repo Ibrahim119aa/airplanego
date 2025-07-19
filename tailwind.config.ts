@@ -11,6 +11,13 @@ const config: Config = {
 		"*.{js,ts,jsx,tsx,mdx}"
 	],
 	theme: {
+		container: {
+			center: true,
+			padding: "2rem",
+			screens: {
+				"2xl": "1400px",
+			},
+		},
 		extend: {
 			textShadow: {
 				'custom': '0px 1px 4px rgba(0, 0, 0, 0.6)',
@@ -28,8 +35,7 @@ const config: Config = {
 				poppins: ['var(--font-poppins)', 'sans-serif'],
 			},
 			colors: {
-				background: 'hsl(var(--background))',
-				foreground: 'hsl(var(--foreground))',
+
 				card: {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
@@ -38,9 +44,11 @@ const config: Config = {
 					DEFAULT: 'hsl(var(--popover))',
 					foreground: 'hsl(var(--popover-foreground))'
 				},
+				background: "hsl(var(--background))",
+				foreground: "hsl(var(--foreground))",
 				primary: {
-					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					DEFAULT: "#1479C9", // Primary color
+					foreground: "hsl(var(--primary-foreground))",
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',

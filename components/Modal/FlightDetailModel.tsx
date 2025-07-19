@@ -28,7 +28,7 @@ const options = [
   },
 ]
 
-export function FlightDetailModal({ open, onOpenChange }: TripDetailsModalFramerProps) {
+export default function FlightDetailModal({ open, onOpenChange }: TripDetailsModalFramerProps) {
   // This state is used for the button's onClick, but the modal's open state is controlled by props.
   // It seems like the original code intended to toggle the modal itself, but the prop-based control is more robust.
   // For demonstration, I'll keep the `setIsOpen` call on the button, but it won't directly affect the modal's visibility
