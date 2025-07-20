@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { AnimatePresence } from "framer-motion"
 import React from "react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -26,9 +27,9 @@ import {
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-const FlightDetailModal = React.lazy(() => import("@/components/Modal/FlightDetailModel"));
-import { AnimatePresence } from "framer-motion"
+
+const FlightDetailModal = React.lazy(() => import("@/components/Modal/FlightDetailModel"))
+
 type QuantityControlProps = {
   label: string
   icon: any
@@ -56,6 +57,7 @@ type FlightLeg = {
   baggage: BaggageInfo
   stops?: {
     airport: string
+    cityName: string // Added city name for better UX
     duration: string
     isOvernight?: boolean
     arrivalTime?: string
@@ -189,6 +191,7 @@ const SearchResult = () => {
         stops: [
           {
             airport: "DOH",
+            cityName: "Doha",
             duration: "1h 30m",
             isOvernight: false,
             arrivalTime: "08:45",
@@ -215,6 +218,7 @@ const SearchResult = () => {
         stops: [
           {
             airport: "DOH",
+            cityName: "Doha",
             duration: "2h 15m",
             isOvernight: false,
             arrivalTime: "17:25",
@@ -248,6 +252,89 @@ const SearchResult = () => {
       guaranteeAvailable: true,
       guaranteeAmount: 32,
     },
+    // New flight with 1 stop in Ankara
+    {
+      id: "flight-ankara",
+      outbound: {
+        date: "Fri, 18 Jul",
+        time: "09:15",
+        airport: "KHI",
+        duration: "5h 20m",
+        totalDuration: "7h 45m",
+        type: "1 stop",
+        arrivalTime: "15:00",
+        arrivalAirport: "DXB",
+        airline: "Turkish Airlines",
+        aircraftType: "Airbus A330",
+        baggage: {
+          cabinBag: "8kg included",
+          checkedBag: "20kg included",
+          personalItem: "Included",
+        },
+        stops: [
+          {
+            airport: "ANK",
+            cityName: "Ankara",
+            duration: "2h 25m",
+            isOvernight: false,
+            arrivalTime: "12:35",
+            departureTime: "15:00",
+          },
+        ],
+      },
+      inbound: {
+        date: "Thu, 26 Jul",
+        time: "16:30",
+        airport: "DXB",
+        duration: "5h 15m",
+        totalDuration: "8h 10m",
+        type: "1 stop",
+        arrivalTime: "22:40",
+        arrivalAirport: "KHI",
+        airline: "Turkish Airlines",
+        aircraftType: "Airbus A330",
+        baggage: {
+          cabinBag: "8kg included",
+          checkedBag: "20kg included",
+          personalItem: "Included",
+        },
+        stops: [
+          {
+            airport: "ANK",
+            cityName: "Ankara",
+            duration: "2h 55m",
+            isOvernight: false,
+            arrivalTime: "19:45",
+            departureTime: "22:40",
+          },
+        ],
+      },
+      nightsInDestination: 8,
+      basePrice: 255,
+      bookingOptions: [
+        {
+          type: "Standard",
+          price: 255,
+          features: ["Seat selection", "20kg checked bag", "8kg cabin bag", "Meal included"],
+          restrictions: ["Change fee $60", "No refunds"],
+        },
+        {
+          type: "Flex",
+          price: 315,
+          features: [
+            "Free seat selection",
+            "20kg checked bag",
+            "8kg cabin bag",
+            "Meal included",
+            "Free changes",
+            "Partial refund",
+          ],
+          restrictions: ["Same-day changes subject to availability"],
+        },
+      ],
+      guaranteeAvailable: true,
+      guaranteeAmount: 30,
+    },
     {
       id: "flight3",
       outbound: {
@@ -269,6 +356,7 @@ const SearchResult = () => {
         stops: [
           {
             airport: "ISB",
+            cityName: "Islamabad",
             duration: "1h 45m",
             isOvernight: false,
             arrivalTime: "15:30",
@@ -276,6 +364,7 @@ const SearchResult = () => {
           },
           {
             airport: "DOH",
+            cityName: "Doha",
             duration: "2h 30m",
             isOvernight: false,
             arrivalTime: "19:25",
@@ -302,6 +391,7 @@ const SearchResult = () => {
         stops: [
           {
             airport: "AUH",
+            cityName: "Abu Dhabi",
             duration: "3h 20m",
             isOvernight: false,
             arrivalTime: "11:05",
@@ -309,6 +399,7 @@ const SearchResult = () => {
           },
           {
             airport: "ISB",
+            cityName: "Islamabad",
             duration: "1h 50m",
             isOvernight: false,
             arrivalTime: "15:10",
@@ -363,6 +454,7 @@ const SearchResult = () => {
         stops: [
           {
             airport: "IST",
+            cityName: "Istanbul",
             duration: "8h 45m",
             isOvernight: true,
             arrivalTime: "03:10+1",
@@ -477,8 +569,8 @@ const SearchResult = () => {
       setSelectedAirlines(selectedAirlines.filter((a) => a !== airline))
     }
   }
-  const [isOpen, setIsOpen] = useState(false);
 
+  const [isOpen, setIsOpen] = useState(false)
 
   const handleTimeRangeChange = (timeRange: TimeRange, checked: boolean) => {
     if (checked) {
@@ -518,9 +610,7 @@ const SearchResult = () => {
 
   const getFlightSummary = (flights: FlightOption[]) => {
     if (flights.length === 0) return { best: null, cheapest: null, fastest: null }
-
     const cheapest = flights.reduce((prev, current) => (prev.basePrice < current.basePrice ? prev : current))
-
     const fastest = flights.reduce((prev, current) => {
       const prevDuration =
         Number.parseInt(prev.outbound.totalDuration.split("h")[0]) * 60 +
@@ -538,7 +628,6 @@ const SearchResult = () => {
           : 0)
       return prevDuration < currentDuration ? prev : current
     })
-
     // For "Best", let's pick the cheapest direct flight if available, otherwise the overall cheapest.
     const directFlights = flights.filter(
       (f) => f.outbound.type === "Direct" && (!f.inbound || f.inbound.type === "Direct"),
@@ -547,7 +636,6 @@ const SearchResult = () => {
       directFlights.length > 0
         ? directFlights.reduce((prev, current) => (prev.basePrice < current.basePrice ? prev : current))
         : cheapest
-
     return { best, cheapest, fastest }
   }
 
@@ -558,19 +646,26 @@ const SearchResult = () => {
     const stopText = numStops === 0 ? "Direct" : `${numStops} stop${numStops > 1 ? "s" : ""}`
 
     return (
-      <div className="flex items-center gap-1 text-xs text-gray-500">
-        <span className="font-medium">{leg.airport}</span>
-        <div className="flex-1 h-px bg-gray-300 mx-1" />
-        {numStops > 0 && (
-          <>
-            {leg.stops?.map((stop, index) => (
-              <span key={index} className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0" />
-            ))}
-            <div className="flex-1 h-px bg-gray-300 mx-1" />
-          </>
-        )}
-        <span className="font-medium">{leg.arrivalAirport}</span>
-        <span className="ml-2 text-primary text-xs font-semibold">{stopText}</span>
+      <div className="flex flex-col items-center gap-1">
+        <div className="flex items-center gap-1 text-xs text-gray-500 w-full">
+          <span className="font-medium">{leg.airport}</span>
+          <div className="flex-1 h-px bg-gray-300 mx-1" />
+          {numStops > 0 && (
+            <>
+              {leg.stops?.map((stop, index) => (
+                <span key={index} className="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0" />
+              ))}
+              <div className="flex-1 h-px bg-gray-300 mx-1" />
+            </>
+          )}
+          <span className="font-medium">{leg.arrivalAirport}</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-primary font-semibold">{stopText}</span>
+          {numStops > 0 && leg.stops && (
+            <span className="text-gray-500">via {leg.stops.map((stop) => stop.cityName).join(", ")}</span>
+          )}
+        </div>
       </div>
     )
   }
@@ -595,7 +690,6 @@ const SearchResult = () => {
             </Label>
           </RadioGroup>
         </div>
-
         <div className="pb-4 border-b border-gray-200 mb-4">
           <div
             className="flex items-center justify-between cursor-pointer py-1"
@@ -639,7 +733,6 @@ const SearchResult = () => {
             </div>
           )}
         </div>
-
         <div className="pb-4 border-b border-gray-200 mb-4">
           <div
             className="flex items-center justify-between cursor-pointer py-1"
@@ -689,7 +782,6 @@ const SearchResult = () => {
             </div>
           )}
         </div>
-
         <div className="pb-4 border-b border-gray-200 mb-4">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-base font-semibold">Set up price alerts</h2>
@@ -702,7 +794,6 @@ const SearchResult = () => {
           </div>
           <p className="text-sm text-gray-500">Receive alerts when the prices for this route change.</p>
         </div>
-
         <div className="pb-4 border-b border-gray-200 mb-4">
           <div
             className="flex items-center justify-between cursor-pointer py-1"
@@ -727,7 +818,6 @@ const SearchResult = () => {
             </div>
           )}
         </div>
-
         <div>
           <div
             className="flex items-center justify-between cursor-pointer py-1"
@@ -770,7 +860,6 @@ const SearchResult = () => {
           )}
         </div>
       </div>
-
       <div className="flex-1 bg-white rounded-lg shadow-sm p-4">
         <div className="flex items-center justify-between mb-4">
           <ScrollArea className="w-full whitespace-nowrap">
@@ -808,7 +897,6 @@ const SearchResult = () => {
             </Button>
           </div>
         </div>
-
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full mb-6">
           <TabsList className="grid w-full grid-cols-4 h-auto p-0 bg-transparent border-b border-gray-200">
             <TabsTrigger
@@ -857,7 +945,6 @@ const SearchResult = () => {
             </DropdownMenu>
           </TabsList>
         </Tabs>
-
         <ScrollArea className="h-[calc(100vh-180px)] pr-4">
           <div className="grid gap-4">
             {filteredFlights.length > 0 ? (
@@ -878,7 +965,6 @@ const SearchResult = () => {
                       <span className="text-2xl font-bold text-primary">€{option.basePrice}</span>
                     </div>
                   </div>
-
                   {/* Outbound Flight Details */}
                   <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 mb-2">
                     <div className="text-right">
@@ -895,7 +981,6 @@ const SearchResult = () => {
                     </div>
                   </div>
                   <div className="text-xs text-gray-500 text-center mb-3">{option.outbound.date}</div>
-
                   {/* Inbound Flight Details (if round-trip) */}
                   {option.inbound && (
                     <>
@@ -915,111 +1000,12 @@ const SearchResult = () => {
                         </div>
                       </div>
                       <div className="text-xs text-gray-500 text-center mb-3">{option.inbound.date}</div>
+                      <Button onClick={() => setIsOpen((prev) => !prev)} className="w-full mt-4 bg-primary hover:bg-primary/90 text-white font-semibold py-2 rounded-md">
+                        Select Flight
+                      </Button>
+
                     </>
                   )}
-
-                  <Accordion type="single" collapsible className="w-full mt-2">
-                    <AccordionItem value="flight-details">
-                      <AccordionTrigger className="text-sm text-primary hover:no-underline py-2">
-                        View Flight Details
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-2 pb-0">
-                        <div className="grid gap-2 text-sm text-gray-700">
-                          {/* Outbound detailed info */}
-                          <h3 className="font-semibold text-base mb-1">Outbound Flight</h3>
-                          <div className="flex justify-between items-center">
-                            <span>Airline:</span>
-                            <span className="font-medium">{option.outbound.airline}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span>Aircraft Type:</span>
-                            <span className="font-medium">{option.outbound.aircraftType}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span>Cabin Bag:</span>
-                            <span className="font-medium flex items-center gap-1">
-                              <Luggage className="w-4 h-4" /> {option.outbound.baggage.cabinBag}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span>Checked Bag:</span>
-                            <span className="font-medium flex items-center gap-1">
-                              <Briefcase className="w-4 h-4" /> {option.outbound.baggage.checkedBag}
-                            </span>
-                          </div>
-                          {option.outbound.stops && option.outbound.stops.length > 0 && (
-                            <div className="mt-2">
-                              <h4 className="font-semibold text-sm mb-1">Layover Details:</h4>
-                              {option.outbound.stops.map((stop, index) => (
-                                <div
-                                  key={index}
-                                  className="flex justify-between items-center text-xs text-gray-600 mb-1"
-                                >
-                                  <span>
-                                    {stop.airport} ({stop.duration})
-                                    {stop.isOvernight && <span className="text-red-500 ml-1">(Overnight)</span>}
-                                  </span>
-                                  <span>
-                                    {stop.arrivalTime} → {stop.departureTime}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Inbound detailed info */}
-                          {option.inbound && (
-                            <>
-                              <h3 className="font-semibold text-base mt-4 mb-1">Inbound Flight</h3>
-                              <div className="flex justify-between items-center">
-                                <span>Airline:</span>
-                                <span className="font-medium">{option.inbound.airline}</span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span>Aircraft Type:</span>
-                                <span className="font-medium">{option.inbound.aircraftType}</span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span>Cabin Bag:</span>
-                                <span className="font-medium flex items-center gap-1">
-                                  <Luggage className="w-4 h-4" /> {option.inbound.baggage.cabinBag}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span>Checked Bag:</span>
-                                <span className="font-medium flex items-center gap-1">
-                                  <Briefcase className="w-4 h-4" /> {option.inbound.baggage.checkedBag}
-                                </span>
-                              </div>
-                              {option.inbound.stops && option.inbound.stops.length > 0 && (
-                                <div className="mt-2">
-                                  <h4 className="font-semibold text-sm mb-1">Layover Details:</h4>
-                                  {option.inbound.stops.map((stop, index) => (
-                                    <div
-                                      key={index}
-                                      className="flex justify-between items-center text-xs text-gray-600 mb-1"
-                                    >
-                                      <span>
-                                        {stop.airport} ({stop.duration})
-                                        {stop.isOvernight && <span className="text-red-500 ml-1">(Overnight)</span>}
-                                      </span>
-                                      <span>
-                                        {stop.arrivalTime} → {stop.departureTime}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-
-                  <Button onClick={() => setIsOpen((prev)=>!prev)} className="w-full mt-4 bg-primary hover:bg-primary/90 text-white font-semibold py-2 rounded-md">
-                    Select Flight
-                  </Button>
                 </Card>
               ))
             ) : (
@@ -1028,7 +1014,7 @@ const SearchResult = () => {
                 <p className="text-sm mt-2">Try adjusting your filters to see more options.</p>
               </div>
             )}
-            <AnimatePresence>
+             <AnimatePresence>
               {
                 isOpen ?
                   (
