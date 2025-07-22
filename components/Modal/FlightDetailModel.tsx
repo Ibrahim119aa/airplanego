@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { Plane, Clock, ExternalLink, Info, X, Check } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 interface TripDetailsModalFramerProps {
   open: boolean
@@ -35,6 +36,13 @@ export default function FlightDetailModal({ open, onOpenChange }: TripDetailsMod
   // as `open` is controlled externally.
   const [isOpen, setIsOpen] = useState(false) // This state is not directly controlling the modal's visibility
 
+
+  const navigation=useRouter();
+  const handleNavigation=(type:string)=>
+  {
+       setIsOpen((prev)=>!prev);
+       navigation.push(`/flight/${type}`);
+  }
   return (
     <AnimatePresence>
       {open && (
@@ -223,7 +231,7 @@ export default function FlightDetailModal({ open, onOpenChange }: TripDetailsMod
                                 ? "bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
                                 : "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl"
                               }`}
-                            onClick={() => setIsOpen(!isOpen)} // This will toggle the internal isOpen state, not the modal's visibility
+                            onClick={() => handleNavigation(option.type)} // This will toggle the internal isOpen state, not the modal's visibility
                           >
                             Select {option.type}
                             {option.type === "Flex" && <span className="ml-2 text-sm opacity-90">→</span>}
