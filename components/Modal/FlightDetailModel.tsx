@@ -37,11 +37,10 @@ export default function FlightDetailModal({ open, onOpenChange }: TripDetailsMod
   const [isOpen, setIsOpen] = useState(false) // This state is not directly controlling the modal's visibility
 
 
-  const navigation=useRouter();
-  const handleNavigation=(type:string)=>
-  {
-       setIsOpen((prev)=>!prev);
-       navigation.push(`/flight/${type}`);
+  const navigation = useRouter();
+  const handleNavigation = (type: string) => {
+    setIsOpen((prev) => !prev);
+    navigation.push(`/flight/${type}`);
   }
   return (
     <AnimatePresence>
@@ -180,8 +179,8 @@ export default function FlightDetailModal({ open, onOpenChange }: TripDetailsMod
                       <div
                         key={option.type}
                         className={`relative overflow-hidden rounded-xl border-2 transition-all duration-300 hover:shadow-lg ${option.type === "Standard"
-                            ? "border-gray-200 bg-gradient-to-r from-gray-50 to-white hover:border-gray-300"
-                            : "border-blue-200 bg-gradient-to-r from-blue-50 to-white hover:border-blue-300 hover:shadow-blue-100"
+                          ? "border-gray-200 bg-gradient-to-r from-gray-50 to-white hover:border-gray-300"
+                          : "border-blue-200 bg-gradient-to-r from-blue-50 to-white hover:border-blue-300 hover:shadow-blue-100"
                           }`}
                       >
                         {/* Header Section */}
@@ -228,8 +227,8 @@ export default function FlightDetailModal({ open, onOpenChange }: TripDetailsMod
                           {/* Action Button */}
                           <Button
                             className={`w-full h-12 text-base font-semibold rounded-lg transition-all duration-200 ${option.type === "Standard"
-                                ? "bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
-                                : "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl"
+                              ? "bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                              : "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl"
                               }`}
                             onClick={() => handleNavigation(option.type)} // This will toggle the internal isOpen state, not the modal's visibility
                           >
