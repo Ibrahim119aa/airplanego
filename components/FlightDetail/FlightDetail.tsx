@@ -7,14 +7,16 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Info, Check, Lock, Luggage, ChevronLeft, ChevronRight } from "lucide-react"
+import { Info, Check, Lock, Luggage, ChevronLeft, ChevronRight, ChevronDown, Share2, Plane } from "lucide-react"
 import Image from "next/image"
+
 export default function FlightBookingForm() {
   const [noExpiration, setNoExpiration] = useState(false)
   const [selectedCabinBaggage, setSelectedCabinBaggage] = useState("personal-item")
   const [checkedBaggage12kgQuantity, setCheckedBaggage12kgQuantity] = useState(0)
   const [checkedBaggage20kgQuantity, setCheckedBaggage20kgQuantity] = useState(0)
   const [noCheckedBaggage, setNoCheckedBaggage] = useState(false)
+
   const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i)
   const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, "0"))
   const months = [
@@ -31,6 +33,7 @@ export default function FlightBookingForm() {
     "November",
     "December",
   ]
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <main className="flex-1 container mx-auto px-4 py-8 md:py-12 lg:py-16">
@@ -94,6 +97,117 @@ export default function FlightBookingForm() {
           </div>
         </div>
         {/* End Flight Detail Progress Bar */}
+
+        {/* Trip Summary Section */}
+        <Card className="shadow-sm mb-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-semibold">Trip summary</CardTitle>
+              <Button variant="ghost" size="icon">
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Outbound Flight */}
+            <div>
+              <h3 className="font-semibold text-base mb-4 flex items-center gap-2">
+                Karachi <ChevronRight className="h-4 w-4" /> Dubai
+              </h3>
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-center">
+                      <div className="font-semibold text-lg">01:40</div>
+                      <div className="text-sm text-muted-foreground">Fri, 19 Sept</div>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="text-sm text-muted-foreground">2h 15m</div>
+                      <div className="flex items-center gap-2 my-1">
+                        <div className="w-2 h-2 rounded-full bg-muted-foreground"></div>
+                        <div className="w-16 h-0.5 bg-muted-foreground"></div>
+                        <Plane className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                          <div className="w-2 h-2 rounded-full bg-white"></div>
+                        </div>
+                        Pakistan International Airlines
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-semibold text-lg">02:55</div>
+                      <div className="text-sm text-muted-foreground">Fri, 19 Sept</div>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon">
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Karachi · KHI</span>
+                  <span>Dubai · DXB</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Jinnah International</span>
+                  <span>Dubai International</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Stay Duration */}
+            <div className="text-center py-2">
+              <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">14 nights in Dubai</span>
+            </div>
+
+            {/* Return Flight */}
+            <div>
+              <h3 className="font-semibold text-base mb-4 flex items-center gap-2">
+                Dubai <ChevronRight className="h-4 w-4" /> Karachi
+              </h3>
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-center">
+                      <div className="font-semibold text-lg">20:45</div>
+                      <div className="text-sm text-muted-foreground">Fri, 3 Oct</div>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="text-sm text-muted-foreground">2h 10m</div>
+                      <div className="flex items-center gap-2 my-1">
+                        <div className="w-2 h-2 rounded-full bg-muted-foreground"></div>
+                        <div className="w-16 h-0.5 bg-muted-foreground"></div>
+                        <Plane className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                          <div className="w-2 h-2 rounded-full bg-white"></div>
+                        </div>
+                        Pakistan International Airlines
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-semibold text-lg">23:55</div>
+                      <div className="text-sm text-muted-foreground">Fri, 3 Oct</div>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon">
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Dubai · DXB</span>
+                  <span>Karachi · KHI</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Dubai International</span>
+                  <span>Jinnah International</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Passenger Details & Travel Insurance */}
           <div className="lg:col-span-2 space-y-8">
@@ -258,6 +372,7 @@ export default function FlightBookingForm() {
                 </div>
               </CardContent>
             </Card>
+
             {/* Cabin or carry-on baggage Section */}
             <Card className="shadow-sm">
               <CardHeader>
@@ -280,7 +395,13 @@ export default function FlightBookingForm() {
                     <div className="flex flex-col items-center text-center space-y-2">
                       <p className="font-medium">1x personal item</p>
                       <p className="text-sm text-muted-foreground">Must fit under front seat</p>
-                      <Image src="/assets/images/baggage1.png" alt="Backpack" width={80} height={80} className="my-4" />
+                      <Image
+                        src="/placeholder.svg?height=80&width=80"
+                        alt="Backpack"
+                        width={80}
+                        height={80}
+                        className="my-4"
+                      />
                       <p className="text-sm text-muted-foreground">15 x 30 x 40 cm</p>
                       <div className="flex items-center text-green-600 font-medium mt-2">
                         <Check className="h-4 w-4 mr-1" /> Included
@@ -299,8 +420,8 @@ export default function FlightBookingForm() {
                       <p className="font-medium">Carry-on bundle</p>
                       <p className="text-sm text-muted-foreground">1x personal item (3 kg) + 1x cabin bag (8 kg)</p>
                       <div className="flex items-center justify-center gap-2 my-4">
-                        <Image src="/assets/images/baggage1.png" alt="Backpack" width={60} height={60} />
-                        <Image src="/assets/images/baggage1.png" alt="Small Suitcase" width={60} height={60} />
+                        <Image src="/placeholder.svg?height=60&width=60" alt="Backpack" width={60} height={60} />
+                        <Image src="/placeholder.svg?height=60&width=60" alt="Small Suitcase" width={60} height={60} />
                       </div>
                       <p className="text-sm text-muted-foreground">15 x 30 x 40 cm 20 x 40 x 55 cm</p>
                       <p className="font-semibold text-lg mt-2">29.64 €</p>
@@ -309,6 +430,7 @@ export default function FlightBookingForm() {
                 </RadioGroup>
               </CardContent>
             </Card>
+
             {/* Checked baggage Section */}
             <Card className="shadow-sm">
               <CardHeader>
@@ -331,7 +453,7 @@ export default function FlightBookingForm() {
                     <div className="flex flex-col items-center text-center space-y-2">
                       <p className="font-medium">12 kg</p>
                       <Image
-                        src="/assets/images/baggage2.png"
+                        src="/placeholder.svg?height=100&width=100"
                         alt="Large Suitcase"
                         width={100}
                         height={100}
@@ -376,7 +498,7 @@ export default function FlightBookingForm() {
                     <div className="flex flex-col items-center text-center space-y-2">
                       <p className="font-medium">20 kg</p>
                       <Image
-                        src="/assets/images/baggage2.png"
+                        src="/placeholder.svg?height=100&width=100"
                         alt="Large Suitcase"
                         width={100}
                         height={100}
@@ -430,10 +552,8 @@ export default function FlightBookingForm() {
                 </div>
               </CardContent>
             </Card>
-            {/* Travel Insurance Section */}
-          
-            {/* Booking for more passengers */}
           </div>
+
           {/* Right Column: Price Summary & Lock Price */}
           <div className="lg:col-span-1 space-y-8">
             {/* Price Summary */}
@@ -472,37 +592,10 @@ export default function FlightBookingForm() {
                 </a>
               </CardContent>
             </Card>
-            {/* Need more time to decide? */}
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold">Need more time to decide?</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-4 text-center">
-                <Image
-                  src="/placeholder.svg?height=80&width=80"
-                  alt="Lock and money bags"
-                  width={80}
-                  height={80}
-                  className="mx-auto"
-                />
-                <p className="text-sm text-muted-foreground">
-                  We&apos;ll hold this ticket price for 3 days and you pay the locked price of{" "}
-                  <span className="font-semibold text-foreground">$310</span> when ready to finish your booking.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  If the price goes down, you&apos;ll pay the new, lower price.
-                </p>
-                <Button className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90">
-                  <Lock className="h-4 w-4 mr-2" /> Lock price for $31.12
-                </Button>
-                <div className="flex items-center justify-center text-xs text-muted-foreground">
-                  <Luggage className="h-4 w-4 mr-1" /> Baggage won&apos;t be locked
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </main>
+
       {/* Sticky Footer */}
       <footer className="sticky bottom-0 w-full bg-white border-t p-4 flex justify-between items-center shadow-lg">
         <Button variant="outline" className="text-muted-foreground border-input hover:bg-accent bg-transparent">
