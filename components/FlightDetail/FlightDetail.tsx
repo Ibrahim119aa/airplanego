@@ -1,14 +1,54 @@
 "use client"
+
 import { useState } from "react"
+import {
+  Share2,
+  ChevronRight,
+  Plane,
+  Luggage,
+  Utensils,
+  Wifi,
+  Tv,
+  User,
+  Info,
+  Check,
+  ChevronLeft,
+  X,
+  Plus,
+} from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Info, Check, Lock, Luggage, ChevronLeft, ChevronRight, ChevronDown, Share2, Plane } from "lucide-react"
 import Image from "next/image"
+
+interface Passenger {
+  id: string
+  type: "adult" | "child" | "infant"
+  givenNames: string
+  surnames: string
+  nationality: string
+  gender: string
+  dateOfBirth: {
+    day: string
+    month: string
+    year: string
+  }
+  passportNumber: string
+  passportExpiration: {
+    day: string
+    month: string
+    year: string
+  }
+  noExpiration: boolean
+  travelInsurance: "plus" | "basic" | "none"
+}
 
 export default function FlightBookingForm() {
   const [noExpiration, setNoExpiration] = useState(false)
@@ -16,6 +56,22 @@ export default function FlightBookingForm() {
   const [checkedBaggage12kgQuantity, setCheckedBaggage12kgQuantity] = useState(0)
   const [checkedBaggage20kgQuantity, setCheckedBaggage20kgQuantity] = useState(0)
   const [noCheckedBaggage, setNoCheckedBaggage] = useState(false)
+
+  const [passengers, setPassengers] = useState<Passenger[]>([
+    {
+      id: "1",
+      type: "adult",
+      givenNames: "",
+      surnames: "",
+      nationality: "",
+      gender: "",
+      dateOfBirth: { day: "", month: "", year: "" },
+      passportNumber: "",
+      passportExpiration: { day: "", month: "", year: "" },
+      noExpiration: false,
+      travelInsurance: "basic",
+    },
+  ])
 
   const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i)
   const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, "0"))
@@ -33,6 +89,410 @@ export default function FlightBookingForm() {
     "November",
     "December",
   ]
+
+  const addPassenger = () => {
+    const newPassenger: Passenger = {
+      id: Date.now().toString(),
+      type: "adult",
+      givenNames: "",
+      surnames: "",
+      nationality: "",
+      gender: "",
+      dateOfBirth: { day: "", month: "", year: "" },
+      passportNumber: "",
+      passportExpiration: { day: "", month: "", year: "" },
+      noExpiration: false,
+      travelInsurance: "basic",
+    }
+    setPassengers([...passengers, newPassenger])
+  }
+
+  const removePassenger = (id: string) => {
+    if (passengers.length > 1) {
+      setPassengers(passengers.filter((p) => p.id !== id))
+    }
+  }
+
+  const updatePassenger = (id: string, field: string, value: any) => {
+    setPassengers(passengers.map((p) => (p.id === id ? { ...p, [field]: value } : p)))
+  }
+
+  const updatePassengerDateOfBirth = (id: string, field: "day" | "month" | "year", value: string) => {
+    setPassengers(
+      passengers.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              dateOfBirth: { ...p.dateOfBirth, [field]: value },
+            }
+          : p,
+      ),
+    )
+  }
+
+  const updatePassengerPassportExpiration = (id: string, field: "day" | "month" | "year", value: string) => {
+    setPassengers(
+      passengers.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              passportExpiration: { ...p.passportExpiration, [field]: value },
+            }
+          : p,
+      ),
+    )
+  }
+
+  const calculateTotalPrice = () => {
+    const basePrice = 276
+    const adultCount = passengers.filter((p) => p.type === "adult").length
+    const childCount = passengers.filter((p) => p.type === "child").length
+    const infantCount = passengers.filter((p) => p.type === "infant").length
+
+    let total = adultCount * basePrice + childCount * basePrice * 0.75 + infantCount * basePrice * 0.1
+
+    // Add travel insurance costs
+    passengers.forEach((p) => {
+      if (p.travelInsurance === "plus") total += 4.99 * 14 // 14 days
+      if (p.travelInsurance === "basic") total += 2.49 * 14 // 14 days
+    })
+
+    // Add baggage costs
+    if (selectedCabinBaggage === "carry-on-bundle") total += 29.64
+    total += checkedBaggage12kgQuantity * 37.24
+    total += checkedBaggage20kgQuantity * 64.31
+
+    total += 34 // Kiwi.com Guarantee
+
+    return Math.round(total)
+  }
+
+  const renderPassengerForm = (passenger: Passenger, index: number) => (
+    <Card key={passenger.id} className="shadow-sm">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-semibold">
+            {index === 0 ? "Primary passenger" : `Passenger ${index + 1}`}
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Select
+              value={passenger.type}
+              onValueChange={(value: "adult" | "child" | "infant") => updatePassenger(passenger.id, "type", value)}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="adult">Adult (over 12 years)</SelectItem>
+                <SelectItem value="child">Child (2-12 years)</SelectItem>
+                <SelectItem value="infant">Infant (under 2 years)</SelectItem>
+              </SelectContent>
+            </Select>
+            {index > 0 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => removePassenger(passenger.id)}
+                className="text-red-500 hover:text-red-700"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="bg-blue-100 text-blue-800 p-4 rounded-md flex items-start space-x-3">
+          <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
+          <p className="text-sm">
+            To avoid boarding complications, enter all names and surnames exactly as they appear in your
+            <span className="font-medium"> passport/ID</span>.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor={`given-names-${passenger.id}`}>Given names</Label>
+            <Input
+              id={`given-names-${passenger.id}`}
+              placeholder="e.g. Harry James"
+              value={passenger.givenNames}
+              onChange={(e) => updatePassenger(passenger.id, "givenNames", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor={`surnames-${passenger.id}`}>Surnames</Label>
+            <Input
+              id={`surnames-${passenger.id}`}
+              placeholder="e.g. Brown"
+              value={passenger.surnames}
+              onChange={(e) => updatePassenger(passenger.id, "surnames", e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor={`nationality-${passenger.id}`}>Nationality</Label>
+            <Select
+              value={passenger.nationality}
+              onValueChange={(value) => updatePassenger(passenger.id, "nationality", value)}
+            >
+              <SelectTrigger id={`nationality-${passenger.id}`}>
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="us">United States</SelectItem>
+                <SelectItem value="ca">Canada</SelectItem>
+                <SelectItem value="mx">Mexico</SelectItem>
+                <SelectItem value="pk">Pakistan</SelectItem>
+                <SelectItem value="ae">United Arab Emirates</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor={`gender-${passenger.id}`}>Gender</Label>
+            <Select value={passenger.gender} onValueChange={(value) => updatePassenger(passenger.id, "gender", value)}>
+              <SelectTrigger id={`gender-${passenger.id}`}>
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div>
+          <Label>Date of birth</Label>
+          <div className="grid grid-cols-3 gap-2">
+            <Select
+              value={passenger.dateOfBirth.day}
+              onValueChange={(value) => updatePassengerDateOfBirth(passenger.id, "day", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="DD" />
+              </SelectTrigger>
+              <SelectContent>
+                {days.map((day) => (
+                  <SelectItem key={day} value={day}>
+                    {day}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={passenger.dateOfBirth.month}
+              onValueChange={(value) => updatePassengerDateOfBirth(passenger.id, "month", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Month" />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map((month, index) => (
+                  <SelectItem key={month} value={(index + 1).toString()}>
+                    {month}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={passenger.dateOfBirth.year}
+              onValueChange={(value) => updatePassengerDateOfBirth(passenger.id, "year", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="YYYY" />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor={`passport-id-${passenger.id}`}>Passport or ID number</Label>
+            <Input
+              id={`passport-id-${passenger.id}`}
+              placeholder="Passport or ID number"
+              value={passenger.passportNumber}
+              onChange={(e) => updatePassenger(passenger.id, "passportNumber", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Passport or ID expiration date</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <Select
+                disabled={passenger.noExpiration}
+                value={passenger.passportExpiration.day}
+                onValueChange={(value) => updatePassengerPassportExpiration(passenger.id, "day", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="DD" />
+                </SelectTrigger>
+                <SelectContent>
+                  {days.map((day) => (
+                    <SelectItem key={day} value={day}>
+                      {day}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                disabled={passenger.noExpiration}
+                value={passenger.passportExpiration.month}
+                onValueChange={(value) => updatePassengerPassportExpiration(passenger.id, "month", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map((month, index) => (
+                    <SelectItem key={month} value={(index + 1).toString()}>
+                      {month}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                disabled={passenger.noExpiration}
+                value={passenger.passportExpiration.year}
+                onValueChange={(value) => updatePassengerPassportExpiration(passenger.id, "year", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="YYYY" />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id={`no-expiration-${passenger.id}`}
+            checked={passenger.noExpiration}
+            onCheckedChange={(checked) => updatePassenger(passenger.id, "noExpiration", !!checked)}
+          />
+          <Label htmlFor={`no-expiration-${passenger.id}`}>No expiration</Label>
+        </div>
+
+        {/* Travel Insurance Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Travel insurance</h3>
+            <span className="text-sm text-muted-foreground">provided by AXA Assistance</span>
+          </div>
+          <div className="bg-blue-100 text-blue-800 p-4 rounded-md flex items-start space-x-3">
+            <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
+            <p className="text-sm">Applies to COVID-19 and related treatment.</p>
+          </div>
+
+          <RadioGroup
+            value={passenger.travelInsurance}
+            onValueChange={(value: "plus" | "basic" | "none") =>
+              updatePassenger(passenger.id, "travelInsurance", value)
+            }
+            className="grid grid-cols-1 md:grid-cols-3 gap-4"
+          >
+            <Label
+              htmlFor={`travel-plus-${passenger.id}`}
+              className="flex flex-col p-4 border rounded-md cursor-pointer has-[[data-state=checked]]:border-orange-500 has-[[data-state=checked]]:ring-2 has-[[data-state=checked]]:ring-orange-200"
+            >
+              <RadioGroupItem value="plus" id={`travel-plus-${passenger.id}`} className="sr-only" />
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-white"></div>
+                </div>
+                <span className="font-medium">Travel Plus</span>
+              </div>
+              <div className="text-orange-600 font-semibold mb-3">+ $4.99 per day</div>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-green-600" />
+                  Medical expenses (including COVID-19)
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-green-600" />
+                  Trip cancellation due to your illness (incl. COVID-19), accident, death
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-green-600" />
+                  Assistance services
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-green-600" />
+                  Lost baggage
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-green-600" />
+                  Air travel insurance
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-green-600" />
+                  Liability
+                </li>
+              </ul>
+            </Label>
+
+            <Label
+              htmlFor={`travel-basic-${passenger.id}`}
+              className="flex flex-col p-4 border rounded-md cursor-pointer has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:ring-2 has-[[data-state=checked]]:ring-blue-200"
+            >
+              <RadioGroupItem value="basic" id={`travel-basic-${passenger.id}`} className="sr-only" />
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-white"></div>
+                </div>
+                <span className="font-medium">Travel Basic</span>
+              </div>
+              <div className="text-blue-600 font-semibold mb-3">+ $2.49 per day</div>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-green-600" />
+                  Medical expenses (including COVID-19)
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-green-600" />
+                  Trip cancellation due to your illness (incl. COVID-19), accident, death
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-green-600" />
+                  Assistance services
+                </li>
+              </ul>
+            </Label>
+
+            <Label
+              htmlFor={`no-insurance-${passenger.id}`}
+              className="flex flex-col p-4 border rounded-md cursor-pointer has-[[data-state=checked]]:border-gray-500 has-[[data-state=checked]]:ring-2 has-[[data-state=checked]]:ring-gray-200"
+            >
+              <RadioGroupItem value="none" id={`no-insurance-${passenger.id}`} className="sr-only" />
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-4 h-4 rounded-full bg-gray-500 flex items-center justify-center">
+                  <X className="h-2 w-2 text-white" />
+                </div>
+                <span className="font-medium">No insurance</span>
+              </div>
+            </Label>
+          </RadioGroup>
+        </div>
+      </CardContent>
+    </Card>
+  )
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -96,7 +556,6 @@ export default function FlightBookingForm() {
             </div>
           </div>
         </div>
-        {/* End Flight Detail Progress Bar */}
 
         {/* Trip Summary Section */}
         <Card className="shadow-sm mb-8">
@@ -109,266 +568,277 @@ export default function FlightBookingForm() {
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Outbound Flight */}
-            <div>
-              <h3 className="font-semibold text-base mb-4 flex items-center gap-2">
-                Karachi <ChevronRight className="h-4 w-4" /> Dubai
-              </h3>
-              <div className="border rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <div className="font-semibold text-lg">01:40</div>
-                      <div className="text-sm text-muted-foreground">Fri, 19 Sept</div>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <div className="text-sm text-muted-foreground">2h 15m</div>
-                      <div className="flex items-center gap-2 my-1">
-                        <div className="w-2 h-2 rounded-full bg-muted-foreground"></div>
-                        <div className="w-16 h-0.5 bg-muted-foreground"></div>
-                        <Plane className="h-4 w-4 text-muted-foreground" />
+            <Accordion type="multiple" className="w-full space-y-4">
+              {/* Outbound Flight */}
+              <AccordionItem value="outbound" className="border rounded-lg">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center justify-between w-full mr-4">
+                    <h3 className="font-semibold text-base flex items-center gap-2">
+                      Karachi <ChevronRight className="h-4 w-4" /> Dubai
+                    </h3>
+                    <div className="flex items-center gap-4">
+                      <div className="text-center">
+                        <div className="font-semibold text-lg">01:40</div>
+                        <div className="text-sm text-muted-foreground">Fri, 19 Sept</div>
                       </div>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
-                          <div className="w-2 h-2 rounded-full bg-white"></div>
+                      <div className="flex flex-col items-center">
+                        <div className="text-sm text-muted-foreground">2h 15m</div>
+                        <div className="flex items-center gap-2 my-1">
+                          <div className="w-2 h-2 rounded-full bg-muted-foreground"></div>
+                          <div className="w-16 h-0.5 bg-muted-foreground"></div>
+                          <Plane className="h-4 w-4 text-muted-foreground" />
                         </div>
-                        Pakistan International Airlines
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                            <div className="w-2 h-2 rounded-full bg-white"></div>
+                          </div>
+                          PIA
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-semibold text-lg">02:55</div>
-                      <div className="text-sm text-muted-foreground">Fri, 19 Sept</div>
+                      <div className="text-center">
+                        <div className="font-semibold text-lg">02:55</div>
+                        <div className="text-sm text-muted-foreground">Fri, 19 Sept</div>
+                      </div>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon">
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Karachi · KHI</span>
-                  <span>Dubai · DXB</span>
-                </div>
-                <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Jinnah International</span>
-                  <span>Dubai International</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Stay Duration */}
-            <div className="text-center py-2">
-              <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">14 nights in Dubai</span>
-            </div>
-
-            {/* Return Flight */}
-            <div>
-              <h3 className="font-semibold text-base mb-4 flex items-center gap-2">
-                Dubai <ChevronRight className="h-4 w-4" /> Karachi
-              </h3>
-              <div className="border rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <div className="font-semibold text-lg">20:45</div>
-                      <div className="text-sm text-muted-foreground">Fri, 3 Oct</div>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <div className="text-sm text-muted-foreground">2h 10m</div>
-                      <div className="flex items-center gap-2 my-1">
-                        <div className="w-2 h-2 rounded-full bg-muted-foreground"></div>
-                        <div className="w-16 h-0.5 bg-muted-foreground"></div>
-                        <Plane className="h-4 w-4 text-muted-foreground" />
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="space-y-4">
+                    {/* Basic Flight Info */}
+                    <div className="flex items-center justify-between text-sm">
+                      <div>
+                        <div className="font-medium">Karachi · KHI</div>
+                        <div className="text-muted-foreground">Jinnah International</div>
                       </div>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
-                          <div className="w-2 h-2 rounded-full bg-white"></div>
+                      <div className="text-right">
+                        <div className="font-medium">Dubai · DXB</div>
+                        <div className="text-muted-foreground">Dubai International</div>
+                      </div>
+                    </div>
+                    <Separator />
+                    {/* Flight Details */}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <h4 className="font-medium mb-2">Flight Details</h4>
+                        <div className="space-y-1 text-muted-foreground">
+                          <div>Flight: PK 213</div>
+                          <div>Aircraft: Boeing 777-300ER</div>
+                          <div>Class: Economy</div>
+                          <div>Seat: 24A (Window)</div>
                         </div>
-                        Pakistan International Airlines
+                      </div>
+                      <div>
+                        <h4 className="font-medium mb-2">Services</h4>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            <Luggage className="h-3 w-3 mr-1" />
+                            23kg
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            <Utensils className="h-3 w-3 mr-1" />
+                            Meal
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            <Wifi className="h-3 w-3 mr-1" />
+                            WiFi
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            <Tv className="h-3 w-3 mr-1" />
+                            Entertainment
+                          </Badge>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-center">
-                      <div className="font-semibold text-lg">23:55</div>
-                      <div className="text-sm text-muted-foreground">Fri, 3 Oct</div>
+                    <Separator />
+                    {/* Passenger Info */}
+                    <div>
+                      <h4 className="font-medium mb-2 text-sm">Passenger Information</h4>
+                      {passengers.map((passenger, index) => (
+                        <div key={passenger.id} className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                          <User className="h-4 w-4" />
+                          <span>
+                            {passenger.givenNames || "Passenger"} {passenger.surnames || index + 1} -{" "}
+                            {passenger.type === "adult" ? "Adult" : passenger.type === "child" ? "Child" : "Infant"}
+                          </span>
+                          <Badge variant="outline" className="text-xs">
+                            Confirmed
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Baggage Info */}
+                    <div>
+                      <h4 className="font-medium mb-2 text-sm">Baggage Allowance</h4>
+                      <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+                        <div>
+                          <div className="font-medium text-foreground">Carry-on</div>
+                          <div>7kg, 55x40x20cm</div>
+                        </div>
+                        <div>
+                          <div className="font-medium text-foreground">Checked</div>
+                          <div>23kg, 158cm total</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon">
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Dubai · DXB</span>
-                  <span>Karachi · KHI</span>
-                </div>
-                <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Dubai International</span>
-                  <span>Jinnah International</span>
-                </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Stay Duration */}
+              <div className="text-center py-2">
+                <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                  14 nights in Dubai
+                </span>
               </div>
-            </div>
+
+              {/* Return Flight */}
+              <AccordionItem value="return" className="border rounded-lg">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center justify-between w-full mr-4">
+                    <h3 className="font-semibold text-base flex items-center gap-2">
+                      Dubai <ChevronRight className="h-4 w-4" /> Karachi
+                    </h3>
+                    <div className="flex items-center gap-4">
+                      <div className="text-center">
+                        <div className="font-semibold text-lg">20:45</div>
+                        <div className="text-sm text-muted-foreground">Fri, 3 Oct</div>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <div className="text-sm text-muted-foreground">2h 10m</div>
+                        <div className="flex items-center gap-2 my-1">
+                          <div className="w-2 h-2 rounded-full bg-muted-foreground"></div>
+                          <div className="w-16 h-0.5 bg-muted-foreground"></div>
+                          <Plane className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                            <div className="w-2 h-2 rounded-full bg-white"></div>
+                          </div>
+                          PIA
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-semibold text-lg">23:55</div>
+                        <div className="text-sm text-muted-foreground">Fri, 3 Oct</div>
+                      </div>
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="space-y-4">
+                    {/* Basic Flight Info */}
+                    <div className="flex items-center justify-between text-sm">
+                      <div>
+                        <div className="font-medium">Dubai · DXB</div>
+                        <div className="text-muted-foreground">Dubai International</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium">Karachi · KHI</div>
+                        <div className="text-muted-foreground">Jinnah International</div>
+                      </div>
+                    </div>
+                    <Separator />
+                    {/* Flight Details */}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <h4 className="font-medium mb-2">Flight Details</h4>
+                        <div className="space-y-1 text-muted-foreground">
+                          <div>Flight: PK 214</div>
+                          <div>Aircraft: Boeing 777-200LR</div>
+                          <div>Class: Economy</div>
+                          <div>Seat: 18F (Aisle)</div>
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="font-medium mb-2">Services</h4>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            <Luggage className="h-3 w-3 mr-1" />
+                            23kg
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            <Utensils className="h-3 w-3 mr-1" />
+                            Meal
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            <Wifi className="h-3 w-3 mr-1" />
+                            WiFi
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            <Tv className="h-3 w-3 mr-1" />
+                            Entertainment
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                    <Separator />
+                    {/* Passenger Info */}
+                    <div>
+                      <h4 className="font-medium mb-2 text-sm">Passenger Information</h4>
+                      {passengers.map((passenger, index) => (
+                        <div key={passenger.id} className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                          <User className="h-4 w-4" />
+                          <span>
+                            {passenger.givenNames || "Passenger"} {passenger.surnames || index + 1} -{" "}
+                            {passenger.type === "adult" ? "Adult" : passenger.type === "child" ? "Child" : "Infant"}
+                          </span>
+                          <Badge variant="outline" className="text-xs">
+                            Confirmed
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Baggage Info */}
+                    <div>
+                      <h4 className="font-medium mb-2 text-sm">Baggage Allowance</h4>
+                      <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+                        <div>
+                          <div className="font-medium text-foreground">Carry-on</div>
+                          <div>7kg, 55x40x20cm</div>
+                        </div>
+                        <div>
+                          <div className="font-medium text-foreground">Checked</div>
+                          <div>23kg, 158cm total</div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Special Requests */}
+                    <div>
+                      <h4 className="font-medium mb-2 text-sm">Special Requests</h4>
+                      <div className="flex gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          Vegetarian Meal
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          Extra Legroom
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </CardContent>
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Passenger Details & Travel Insurance */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Primary Passenger Section */}
+            {/* Passenger Forms */}
+            {passengers.map((passenger, index) => renderPassengerForm(passenger, index))}
+
+            {/* Add Another Passenger Button */}
             <Card className="shadow-sm">
-              <CardHeader>
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-semibold">Primary passenger</CardTitle>
-                  <Select defaultValue="adult">
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="adult">Adult (over 12 years)</SelectItem>
-                      <SelectItem value="child">Child (2-12 years)</SelectItem>
-                      <SelectItem value="infant">Infant (under 2 years)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="bg-blue-100 text-blue-800 p-4 rounded-md flex items-start space-x-3">
-                  <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm">
-                    To avoid boarding complications, enter all names and surnames exactly as they appear in your
-                    <span className="font-medium"> passport/ID</span>.
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="given-names">Given names</Label>
-                    <Input id="given-names" placeholder="e.g. Harry James" />
+                    <h3 className="font-semibold text-lg">Booking for more passengers?</h3>
+                    <p className="text-sm text-muted-foreground">Add additional passengers to your booking</p>
                   </div>
-                  <div>
-                    <Label htmlFor="surnames">Surnames</Label>
-                    <Input id="surnames" placeholder="e.g. Brown" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="nationality">Nationality</Label>
-                    <Select>
-                      <SelectTrigger id="nationality">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="us">United States</SelectItem>
-                        <SelectItem value="ca">Canada</SelectItem>
-                        <SelectItem value="mx">Mexico</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="gender">Gender</Label>
-                    <Select>
-                      <SelectTrigger id="gender">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div>
-                  <Label>Date of birth</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="DD" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {days.map((day) => (
-                          <SelectItem key={day} value={day}>
-                            {day}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Month" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {months.map((month, index) => (
-                          <SelectItem key={month} value={(index + 1).toString()}>
-                            {month}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="YYYY" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {years.map((year) => (
-                          <SelectItem key={year} value={year.toString()}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="passport-id">Passport or ID number</Label>
-                    <Input id="passport-id" placeholder="Passport or ID number" />
-                  </div>
-                  <div>
-                    <Label>Passport or ID expiration date</Label>
-                    <div className="grid grid-cols-3 gap-2">
-                      <Select disabled={noExpiration}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="DD" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {days.map((day) => (
-                            <SelectItem key={day} value={day}>
-                              {day}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select disabled={noExpiration}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Month" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {months.map((month, index) => (
-                            <SelectItem key={month} value={(index + 1).toString()}>
-                              {month}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select disabled={noExpiration}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="YYYY" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {years.map((year) => (
-                            <SelectItem key={year} value={year.toString()}>
-                              {year}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="no-expiration"
-                    checked={noExpiration}
-                    onCheckedChange={(checked) => setNoExpiration(!!checked)}
-                  />
-                  <Label htmlFor="no-expiration">No expiration</Label>
+                  <Button onClick={addPassenger} className="bg-[#1479C9] hover:bg-sky-600 text-white">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add another passenger
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -396,7 +866,7 @@ export default function FlightBookingForm() {
                       <p className="font-medium">1x personal item</p>
                       <p className="text-sm text-muted-foreground">Must fit under front seat</p>
                       <Image
-                        src="/placeholder.svg?height=80&width=80"
+                        src="/placeholder.svg?height=80&width=80&text=Backpack"
                         alt="Backpack"
                         width={80}
                         height={80}
@@ -420,8 +890,18 @@ export default function FlightBookingForm() {
                       <p className="font-medium">Carry-on bundle</p>
                       <p className="text-sm text-muted-foreground">1x personal item (3 kg) + 1x cabin bag (8 kg)</p>
                       <div className="flex items-center justify-center gap-2 my-4">
-                        <Image src="/placeholder.svg?height=60&width=60" alt="Backpack" width={60} height={60} />
-                        <Image src="/placeholder.svg?height=60&width=60" alt="Small Suitcase" width={60} height={60} />
+                        <Image
+                          src="/placeholder.svg?height=60&width=60&text=Backpack"
+                          alt="Backpack"
+                          width={60}
+                          height={60}
+                        />
+                        <Image
+                          src="/placeholder.svg?height=60&width=60&text=Suitcase"
+                          alt="Small Suitcase"
+                          width={60}
+                          height={60}
+                        />
                       </div>
                       <p className="text-sm text-muted-foreground">15 x 30 x 40 cm 20 x 40 x 55 cm</p>
                       <p className="font-semibold text-lg mt-2">29.64 €</p>
@@ -453,7 +933,7 @@ export default function FlightBookingForm() {
                     <div className="flex flex-col items-center text-center space-y-2">
                       <p className="font-medium">12 kg</p>
                       <Image
-                        src="/placeholder.svg?height=100&width=100"
+                        src="/placeholder.svg?height=100&width=100&text=Large+Suitcase"
                         alt="Large Suitcase"
                         width={100}
                         height={100}
@@ -498,7 +978,7 @@ export default function FlightBookingForm() {
                     <div className="flex flex-col items-center text-center space-y-2">
                       <p className="font-medium">20 kg</p>
                       <Image
-                        src="/placeholder.svg?height=100&width=100"
+                        src="/placeholder.svg?height=100&width=100&text=Large+Suitcase"
                         alt="Large Suitcase"
                         width={100}
                         height={100}
@@ -559,10 +1039,14 @@ export default function FlightBookingForm() {
             {/* Price Summary */}
             <Card className="shadow-sm">
               <CardContent className="p-6 space-y-4">
-                <div className="flex justify-between items-center text-sm">
-                  <span>1x Adult</span>
-                  <span>$276</span>
-                </div>
+                {passengers.map((passenger, index) => (
+                  <div key={passenger.id} className="flex justify-between items-center text-sm">
+                    <span>
+                      1x {passenger.type === "adult" ? "Adult" : passenger.type === "child" ? "Child" : "Infant"}
+                    </span>
+                    <span>${passenger.type === "adult" ? "276" : passenger.type === "child" ? "207" : "28"}</span>
+                  </div>
+                ))}
                 <div className="flex justify-between items-center text-sm">
                   <span>1x Cabin baggage</span>
                   <span>Included</span>
@@ -575,13 +1059,28 @@ export default function FlightBookingForm() {
                   <span>1x Saver fare</span>
                   <span>Included</span>
                 </div>
+                {passengers.some((p) => p.travelInsurance !== "none") && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span>Travel Insurance</span>
+                    <span>
+                      $
+                      {passengers
+                        .reduce((total, p) => {
+                          if (p.travelInsurance === "plus") return total + 4.99 * 14
+                          if (p.travelInsurance === "basic") return total + 2.49 * 14
+                          return total
+                        }, 0)
+                        .toFixed(0)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center text-sm">
                   <span>1x Kiwi.com Guarantee</span>
                   <span>$34</span>
                 </div>
                 <div className="border-t pt-4 flex justify-between items-center font-bold text-lg">
                   <span>Total (USD)</span>
-                  <span>$310</span>
+                  <span>${calculateTotalPrice()}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Includes all taxes, fees, surcharges, and Kiwi.com service fees. Kiwi.com service fees are calculated
@@ -601,7 +1100,7 @@ export default function FlightBookingForm() {
         <Button variant="outline" className="text-muted-foreground border-input hover:bg-accent bg-transparent">
           <ChevronLeft className="h-4 w-4 mr-2" /> Back
         </Button>
-        <Button className=" bg-[#1479C9] hover:bg-sky-600 text-white font-semibold py-3">
+        <Button className="bg-[#1479C9] hover:bg-sky-600 text-white font-semibold py-3">
           Continue <ChevronRight className="h-4 w-4 ml-2" />
         </Button>
       </footer>
