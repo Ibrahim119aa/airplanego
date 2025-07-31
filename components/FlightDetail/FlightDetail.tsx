@@ -27,6 +27,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import Image from "next/image"
+import { useNavigation } from "react-day-picker"
+import { useRouter } from "next/navigation"
 
 interface Passenger {
   id: string
@@ -57,6 +59,7 @@ export default function FlightBookingForm() {
   const [checkedBaggage20kgQuantity, setCheckedBaggage20kgQuantity] = useState(0)
   const [noCheckedBaggage, setNoCheckedBaggage] = useState(false)
 
+  const n = useRouter();
   const [passengers, setPassengers] = useState<Passenger[]>([
     {
       id: "1",
@@ -122,9 +125,9 @@ export default function FlightBookingForm() {
       passengers.map((p) =>
         p.id === id
           ? {
-              ...p,
-              dateOfBirth: { ...p.dateOfBirth, [field]: value },
-            }
+            ...p,
+            dateOfBirth: { ...p.dateOfBirth, [field]: value },
+          }
           : p,
       ),
     )
@@ -135,9 +138,9 @@ export default function FlightBookingForm() {
       passengers.map((p) =>
         p.id === id
           ? {
-              ...p,
-              passportExpiration: { ...p.passportExpiration, [field]: value },
-            }
+            ...p,
+            passportExpiration: { ...p.passportExpiration, [field]: value },
+          }
           : p,
       ),
     )
@@ -391,105 +394,7 @@ export default function FlightBookingForm() {
         </div>
 
         {/* Travel Insurance Section */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Travel insurance</h3>
-            <span className="text-sm text-muted-foreground">provided by AXA Assistance</span>
-          </div>
-          <div className="bg-blue-100 text-blue-800 p-4 rounded-md flex items-start space-x-3">
-            <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
-            <p className="text-sm">Applies to COVID-19 and related treatment.</p>
-          </div>
-
-          <RadioGroup
-            value={passenger.travelInsurance}
-            onValueChange={(value: "plus" | "basic" | "none") =>
-              updatePassenger(passenger.id, "travelInsurance", value)
-            }
-            className="grid grid-cols-1 md:grid-cols-3 gap-4"
-          >
-            <Label
-              htmlFor={`travel-plus-${passenger.id}`}
-              className="flex flex-col p-4 border rounded-md cursor-pointer has-[[data-state=checked]]:border-orange-500 has-[[data-state=checked]]:ring-2 has-[[data-state=checked]]:ring-orange-200"
-            >
-              <RadioGroupItem value="plus" id={`travel-plus-${passenger.id}`} className="sr-only" />
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-white"></div>
-                </div>
-                <span className="font-medium">Travel Plus</span>
-              </div>
-              <div className="text-orange-600 font-semibold mb-3">+ $4.99 per day</div>
-              <ul className="text-sm space-y-1 text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <Check className="h-3 w-3 text-green-600" />
-                  Medical expenses (including COVID-19)
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-3 w-3 text-green-600" />
-                  Trip cancellation due to your illness (incl. COVID-19), accident, death
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-3 w-3 text-green-600" />
-                  Assistance services
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-3 w-3 text-green-600" />
-                  Lost baggage
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-3 w-3 text-green-600" />
-                  Air travel insurance
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-3 w-3 text-green-600" />
-                  Liability
-                </li>
-              </ul>
-            </Label>
-
-            <Label
-              htmlFor={`travel-basic-${passenger.id}`}
-              className="flex flex-col p-4 border rounded-md cursor-pointer has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:ring-2 has-[[data-state=checked]]:ring-blue-200"
-            >
-              <RadioGroupItem value="basic" id={`travel-basic-${passenger.id}`} className="sr-only" />
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-white"></div>
-                </div>
-                <span className="font-medium">Travel Basic</span>
-              </div>
-              <div className="text-blue-600 font-semibold mb-3">+ $2.49 per day</div>
-              <ul className="text-sm space-y-1 text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <Check className="h-3 w-3 text-green-600" />
-                  Medical expenses (including COVID-19)
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-3 w-3 text-green-600" />
-                  Trip cancellation due to your illness (incl. COVID-19), accident, death
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-3 w-3 text-green-600" />
-                  Assistance services
-                </li>
-              </ul>
-            </Label>
-
-            <Label
-              htmlFor={`no-insurance-${passenger.id}`}
-              className="flex flex-col p-4 border rounded-md cursor-pointer has-[[data-state=checked]]:border-gray-500 has-[[data-state=checked]]:ring-2 has-[[data-state=checked]]:ring-gray-200"
-            >
-              <RadioGroupItem value="none" id={`no-insurance-${passenger.id}`} className="sr-only" />
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-4 h-4 rounded-full bg-gray-500 flex items-center justify-center">
-                  <X className="h-2 w-2 text-white" />
-                </div>
-                <span className="font-medium">No insurance</span>
-              </div>
-            </Label>
-          </RadioGroup>
-        </div>
+        
       </CardContent>
     </Card>
   )
@@ -1059,21 +964,7 @@ export default function FlightBookingForm() {
                   <span>1x Saver fare</span>
                   <span>Included</span>
                 </div>
-                {passengers.some((p) => p.travelInsurance !== "none") && (
-                  <div className="flex justify-between items-center text-sm">
-                    <span>Travel Insurance</span>
-                    <span>
-                      $
-                      {passengers
-                        .reduce((total, p) => {
-                          if (p.travelInsurance === "plus") return total + 4.99 * 14
-                          if (p.travelInsurance === "basic") return total + 2.49 * 14
-                          return total
-                        }, 0)
-                        .toFixed(0)}
-                    </span>
-                  </div>
-                )}
+                
                 <div className="flex justify-between items-center text-sm">
                   <span>1x Kiwi.com Guarantee</span>
                   <span>$34</span>
@@ -1100,7 +991,10 @@ export default function FlightBookingForm() {
         <Button variant="outline" className="text-muted-foreground border-input hover:bg-accent bg-transparent">
           <ChevronLeft className="h-4 w-4 mr-2" /> Back
         </Button>
-        <Button className="bg-[#1479C9] hover:bg-sky-600 text-white font-semibold py-3">
+        <Button onClick={() => {
+           n.push("/flight/seat/1")
+        }
+        } className="bg-[#1479C9] hover:bg-sky-600 text-white font-semibold py-3">
           Continue <ChevronRight className="h-4 w-4 ml-2" />
         </Button>
       </footer>
