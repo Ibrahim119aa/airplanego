@@ -5,6 +5,7 @@ import { Check, ChevronLeft, ChevronRight, Plane, Shield, Clock } from "lucide-r
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { useRouter } from "next/navigation"
 
 interface Seat {
   id: string
@@ -43,6 +44,7 @@ export default function SeatSelection({ params }: PageProps) {
     { flightId: "return", seatId: null },
   ])
 
+  const n = useRouter();
   // Generate seat map data
   const generateSeats = (): Seat[] => {
     const seats: Seat[] = []
@@ -309,11 +311,10 @@ export default function SeatSelection({ params }: PageProps) {
                       <button
                         key={flight.id}
                         onClick={() => setActiveFlightTab(flight.id)}
-                        className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                          activeFlightTab === flight.id
+                        className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${activeFlightTab === flight.id
                             ? "border-[#1479C9] text-[#1479C9]"
                             : "border-transparent text-gray-500 hover:text-gray-700"
-                        }`}
+                          }`}
                       >
                         <div className="text-left">
                           <div className="font-semibold">{flight.route}</div>
@@ -540,16 +541,7 @@ export default function SeatSelection({ params }: PageProps) {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">Need more time to decide?</h3>
-                <p className="text-sm text-gray-600 mb-4">Hold your booking for 24 hours and pay later.</p>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <Clock className="w-4 h-4" />
-                  <span>Hold for $15</span>
-                </div>
-              </CardContent>
-            </Card>
+
           </div>
         </div>
 
@@ -560,6 +552,7 @@ export default function SeatSelection({ params }: PageProps) {
             Back
           </Button>
           <Button
+            onClick={() => n.push("/Booking/1")}
             className="bg-[#1479C9] hover:bg-[#1479C9]/90 text-white flex items-center gap-2"
             disabled={isContinueDisabled}
           >

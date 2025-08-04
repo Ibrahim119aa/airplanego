@@ -394,7 +394,7 @@ export default function FlightBookingForm() {
         </div>
 
         {/* Travel Insurance Section */}
-        
+
       </CardContent>
     </Card>
   )
@@ -964,7 +964,7 @@ export default function FlightBookingForm() {
                   <span>1x Saver fare</span>
                   <span>Included</span>
                 </div>
-                
+
                 <div className="flex justify-between items-center text-sm">
                   <span>1x Kiwi.com Guarantee</span>
                   <span>$34</span>
@@ -992,7 +992,7 @@ export default function FlightBookingForm() {
           <ChevronLeft className="h-4 w-4 mr-2" /> Back
         </Button>
         <Button onClick={() => {
-           n.push("/flight/seat/1")
+          n.push("/flight/seat/1")
         }
         } className="bg-[#1479C9] hover:bg-sky-600 text-white font-semibold py-3">
           Continue <ChevronRight className="h-4 w-4 ml-2" />
