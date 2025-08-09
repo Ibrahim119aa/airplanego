@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import {
   Share2,
   ChevronRight,
@@ -16,6 +16,10 @@ import {
   X,
   Plus,
 } from "lucide-react"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
+
+import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -26,9 +30,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import Image from "next/image"
-import { useNavigation } from "react-day-picker"
-import { useRouter } from "next/navigation"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import TopBanner from "@/components/General/TopBanner"
 
 interface Passenger {
   id: string
@@ -53,13 +56,13 @@ interface Passenger {
 }
 
 export default function FlightBookingForm() {
-  const [noExpiration, setNoExpiration] = useState(false)
+  const router = useRouter()
+
   const [selectedCabinBaggage, setSelectedCabinBaggage] = useState("personal-item")
   const [checkedBaggage12kgQuantity, setCheckedBaggage12kgQuantity] = useState(0)
   const [checkedBaggage20kgQuantity, setCheckedBaggage20kgQuantity] = useState(0)
   const [noCheckedBaggage, setNoCheckedBaggage] = useState(false)
 
-  const n = useRouter();
   const [passengers, setPassengers] = useState<Passenger[]>([
     {
       id: "1",
@@ -76,8 +79,13 @@ export default function FlightBookingForm() {
     },
   ])
 
-  const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i)
-  const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, "0"))
+  // Validation UI state
+  const [showErrors, setShowErrors] = useState(false)
+  const [globalError, setGlobalError] = useState<string | null>(null)
+  const passengerRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+
+  const years = useMemo(() => Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i), [])
+  const days = useMemo(() => Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, "0")), [])
   const months = [
     "January",
     "February",
@@ -107,42 +115,26 @@ export default function FlightBookingForm() {
       noExpiration: false,
       travelInsurance: "basic",
     }
-    setPassengers([...passengers, newPassenger])
+    setPassengers((prev) => [...prev, newPassenger])
   }
 
   const removePassenger = (id: string) => {
-    if (passengers.length > 1) {
-      setPassengers(passengers.filter((p) => p.id !== id))
-    }
+    setPassengers((prev) => (prev.length > 1 ? prev.filter((p) => p.id !== id) : prev))
   }
 
-  const updatePassenger = (id: string, field: string, value: any) => {
-    setPassengers(passengers.map((p) => (p.id === id ? { ...p, [field]: value } : p)))
+  const updatePassenger = (id: string, field: keyof Passenger, value: any) => {
+    setPassengers((prev) => prev.map((p) => (p.id === id ? { ...p, [field]: value } : p)))
   }
 
   const updatePassengerDateOfBirth = (id: string, field: "day" | "month" | "year", value: string) => {
-    setPassengers(
-      passengers.map((p) =>
-        p.id === id
-          ? {
-            ...p,
-            dateOfBirth: { ...p.dateOfBirth, [field]: value },
-          }
-          : p,
-      ),
+    setPassengers((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, dateOfBirth: { ...p.dateOfBirth, [field]: value } } : p)),
     )
   }
 
   const updatePassengerPassportExpiration = (id: string, field: "day" | "month" | "year", value: string) => {
-    setPassengers(
-      passengers.map((p) =>
-        p.id === id
-          ? {
-            ...p,
-            passportExpiration: { ...p.passportExpiration, [field]: value },
-          }
-          : p,
-      ),
+    setPassengers((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, passportExpiration: { ...p.passportExpiration, [field]: value } } : p)),
     )
   }
 
@@ -151,316 +143,417 @@ export default function FlightBookingForm() {
     const adultCount = passengers.filter((p) => p.type === "adult").length
     const childCount = passengers.filter((p) => p.type === "child").length
     const infantCount = passengers.filter((p) => p.type === "infant").length
-
     let total = adultCount * basePrice + childCount * basePrice * 0.75 + infantCount * basePrice * 0.1
 
-    // Add travel insurance costs
     passengers.forEach((p) => {
       if (p.travelInsurance === "plus") total += 4.99 * 14 // 14 days
       if (p.travelInsurance === "basic") total += 2.49 * 14 // 14 days
     })
 
-    // Add baggage costs
     if (selectedCabinBaggage === "carry-on-bundle") total += 29.64
     total += checkedBaggage12kgQuantity * 37.24
     total += checkedBaggage20kgQuantity * 64.31
-
     total += 34 // Kiwi.com Guarantee
 
     return Math.round(total)
   }
 
-  const renderPassengerForm = (passenger: Passenger, index: number) => (
-    <Card key={passenger.id} className="shadow-sm">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">
-            {index === 0 ? "Primary passenger" : `Passenger ${index + 1}`}
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Select
-              value={passenger.type}
-              onValueChange={(value: "adult" | "child" | "infant") => updatePassenger(passenger.id, "type", value)}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="adult">Adult (over 12 years)</SelectItem>
-                <SelectItem value="child">Child (2-12 years)</SelectItem>
-                <SelectItem value="infant">Infant (under 2 years)</SelectItem>
-              </SelectContent>
-            </Select>
-            {index > 0 && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => removePassenger(passenger.id)}
-                className="text-red-500 hover:text-red-700"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="bg-blue-100 text-blue-800 p-4 rounded-md flex items-start space-x-3">
-          <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
-          <p className="text-sm">
-            To avoid boarding complications, enter all names and surnames exactly as they appear in your
-            <span className="font-medium"> passport/ID</span>.
-          </p>
-        </div>
+  // Validation helpers
+  const isEmpty = (v?: string) => !v || v.trim() === ""
+  const passengerHasErrors = (p: Passenger) => {
+    if (isEmpty(p.givenNames)) return true
+    if (isEmpty(p.surnames)) return true
+    if (isEmpty(p.nationality)) return true
+    if (isEmpty(p.gender)) return true
+    if (isEmpty(p.dateOfBirth.day) || isEmpty(p.dateOfBirth.month) || isEmpty(p.dateOfBirth.year)) return true
+    if (isEmpty(p.passportNumber)) return true
+    if (!p.noExpiration) {
+      if (
+        isEmpty(p.passportExpiration.day) ||
+        isEmpty(p.passportExpiration.month) ||
+        isEmpty(p.passportExpiration.year)
+      )
+        return true
+    }
+    return false
+  }
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor={`given-names-${passenger.id}`}>Given names</Label>
-            <Input
-              id={`given-names-${passenger.id}`}
-              placeholder="e.g. Harry James"
-              value={passenger.givenNames}
-              onChange={(e) => updatePassenger(passenger.id, "givenNames", e.target.value)}
-            />
-          </div>
-          <div>
-            <Label htmlFor={`surnames-${passenger.id}`}>Surnames</Label>
-            <Input
-              id={`surnames-${passenger.id}`}
-              placeholder="e.g. Brown"
-              value={passenger.surnames}
-              onChange={(e) => updatePassenger(passenger.id, "surnames", e.target.value)}
-            />
-          </div>
-        </div>
+  const validateAllPassengers = () => {
+    const firstInvalid = passengers.find((p) => passengerHasErrors(p))
+    const valid = !firstInvalid
+    return { valid, firstInvalidId: firstInvalid?.id }
+  }
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor={`nationality-${passenger.id}`}>Nationality</Label>
-            <Select
-              value={passenger.nationality}
-              onValueChange={(value) => updatePassenger(passenger.id, "nationality", value)}
-            >
-              <SelectTrigger id={`nationality-${passenger.id}`}>
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="us">United States</SelectItem>
-                <SelectItem value="ca">Canada</SelectItem>
-                <SelectItem value="mx">Mexico</SelectItem>
-                <SelectItem value="pk">Pakistan</SelectItem>
-                <SelectItem value="ae">United Arab Emirates</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor={`gender-${passenger.id}`}>Gender</Label>
-            <Select value={passenger.gender} onValueChange={(value) => updatePassenger(passenger.id, "gender", value)}>
-              <SelectTrigger id={`gender-${passenger.id}`}>
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="male">Male</SelectItem>
-                <SelectItem value="female">Female</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+  const scrollToPassenger = (id?: string) => {
+    if (!id) return
+    const el = passengerRefs.current.get(id)
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }
 
-        <div>
-          <Label>Date of birth</Label>
-          <div className="grid grid-cols-3 gap-2">
-            <Select
-              value={passenger.dateOfBirth.day}
-              onValueChange={(value) => updatePassengerDateOfBirth(passenger.id, "day", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="DD" />
-              </SelectTrigger>
-              <SelectContent>
-                {days.map((day) => (
-                  <SelectItem key={day} value={day}>
-                    {day}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={passenger.dateOfBirth.month}
-              onValueChange={(value) => updatePassengerDateOfBirth(passenger.id, "month", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Month" />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((month, index) => (
-                  <SelectItem key={month} value={(index + 1).toString()}>
-                    {month}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={passenger.dateOfBirth.year}
-              onValueChange={(value) => updatePassengerDateOfBirth(passenger.id, "year", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="YYYY" />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map((year) => (
-                  <SelectItem key={year} value={year.toString()}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+  const handleContinue = () => {
+    setShowErrors(true)
+    const { valid, firstInvalidId } = validateAllPassengers()
+    if (!valid) {
+      setGlobalError("Please fill in all required passenger details before continuing.")
+      scrollToPassenger(firstInvalidId)
+      return
+    }
+    setGlobalError(null)
+    router.push("/flight/seat/1")
+  }
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor={`passport-id-${passenger.id}`}>Passport or ID number</Label>
-            <Input
-              id={`passport-id-${passenger.id}`}
-              placeholder="Passport or ID number"
-              value={passenger.passportNumber}
-              onChange={(e) => updatePassenger(passenger.id, "passportNumber", e.target.value)}
-            />
-          </div>
-          <div>
-            <Label>Passport or ID expiration date</Label>
-            <div className="grid grid-cols-3 gap-2">
-              <Select
-                disabled={passenger.noExpiration}
-                value={passenger.passportExpiration.day}
-                onValueChange={(value) => updatePassengerPassportExpiration(passenger.id, "day", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="DD" />
-                </SelectTrigger>
-                <SelectContent>
-                  {days.map((day) => (
-                    <SelectItem key={day} value={day}>
-                      {day}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                disabled={passenger.noExpiration}
-                value={passenger.passportExpiration.month}
-                onValueChange={(value) => updatePassengerPassportExpiration(passenger.id, "month", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Month" />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map((month, index) => (
-                    <SelectItem key={month} value={(index + 1).toString()}>
-                      {month}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                disabled={passenger.noExpiration}
-                value={passenger.passportExpiration.year}
-                onValueChange={(value) => updatePassengerPassportExpiration(passenger.id, "year", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="YYYY" />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+  const renderPassengerForm = (passenger: Passenger, index: number) => {
+    const givenNamesInvalid = showErrors && isEmpty(passenger.givenNames)
+    const surnamesInvalid = showErrors && isEmpty(passenger.surnames)
+    const nationalityInvalid = showErrors && isEmpty(passenger.nationality)
+    const genderInvalid = showErrors && isEmpty(passenger.gender)
+    const dobInvalid =
+      showErrors &&
+      (isEmpty(passenger.dateOfBirth.day) ||
+        isEmpty(passenger.dateOfBirth.month) ||
+        isEmpty(passenger.dateOfBirth.year))
+    const passportInvalid = showErrors && isEmpty(passenger.passportNumber)
+    const passExpInvalid =
+      showErrors &&
+      !passenger.noExpiration &&
+      (isEmpty(passenger.passportExpiration.day) ||
+        isEmpty(passenger.passportExpiration.month) ||
+        isEmpty(passenger.passportExpiration.year))
+
+    return (
+      <div
+        key={passenger.id}
+        ref={(el) => {
+          if (el) {
+            passengerRefs.current.set(passenger.id, el)
+          }
+        }}
+      >
+        <Card className="shadow-sm">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-semibold">
+                {index === 0 ? "Primary passenger" : `Passenger ${index + 1}`}
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={passenger.type}
+                  onValueChange={(value: "adult" | "child" | "infant") => updatePassenger(passenger.id, "type", value)}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="adult">Adult (over 12 years)</SelectItem>
+                    <SelectItem value="child">Child (2-12 years)</SelectItem>
+                    <SelectItem value="infant">Infant (under 2 years)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {index > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removePassenger(passenger.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="bg-blue-100 text-blue-800 p-4 rounded-md flex items-start space-x-3">
+              <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
+              <p className="text-sm">
+                To avoid boarding complications, enter all names and surnames exactly as they appear in your{" "}
+                <span className="font-medium">passport/ID</span>.
+              </p>
+            </div>
 
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id={`no-expiration-${passenger.id}`}
-            checked={passenger.noExpiration}
-            onCheckedChange={(checked) => updatePassenger(passenger.id, "noExpiration", !!checked)}
-          />
-          <Label htmlFor={`no-expiration-${passenger.id}`}>No expiration</Label>
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor={`given-names-${passenger.id}`}>Given names</Label>
+                <Input
+                  id={`given-names-${passenger.id}`}
+                  placeholder="e.g. Harry James"
+                  value={passenger.givenNames}
+                  onChange={(e) => updatePassenger(passenger.id, "givenNames", e.target.value)}
+                  aria-invalid={givenNamesInvalid}
+                  aria-describedby={givenNamesInvalid ? `given-names-${passenger.id}-error` : undefined}
+                  className={cn(givenNamesInvalid && "border-red-500 focus-visible:ring-red-500")}
+                />
+                {givenNamesInvalid && (
+                  <p id={`given-names-${passenger.id}-error`} className="mt-1 text-sm text-red-600">
+                    Given names are required
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor={`surnames-${passenger.id}`}>Surnames</Label>
+                <Input
+                  id={`surnames-${passenger.id}`}
+                  placeholder="e.g. Brown"
+                  value={passenger.surnames}
+                  onChange={(e) => updatePassenger(passenger.id, "surnames", e.target.value)}
+                  aria-invalid={surnamesInvalid}
+                  aria-describedby={surnamesInvalid ? `surnames-${passenger.id}-error` : undefined}
+                  className={cn(surnamesInvalid && "border-red-500 focus-visible:ring-red-500")}
+                />
+                {surnamesInvalid && (
+                  <p id={`surnames-${passenger.id}-error`} className="mt-1 text-sm text-red-600">
+                    Surnames are required
+                  </p>
+                )}
+              </div>
+            </div>
 
-        {/* Travel Insurance Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor={`nationality-${passenger.id}`}>Nationality</Label>
+                <Select
+                  value={passenger.nationality}
+                  onValueChange={(value) => updatePassenger(passenger.id, "nationality", value)}
+                >
+                  <SelectTrigger
+                    id={`nationality-${passenger.id}`}
+                    aria-invalid={nationalityInvalid}
+                    aria-describedby={nationalityInvalid ? `nationality-${passenger.id}-error` : undefined}
+                    className={cn(nationalityInvalid && "border-red-500 focus-visible:ring-red-500")}
+                  >
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="us">United States</SelectItem>
+                    <SelectItem value="ca">Canada</SelectItem>
+                    <SelectItem value="mx">Mexico</SelectItem>
+                    <SelectItem value="pk">Pakistan</SelectItem>
+                    <SelectItem value="ae">United Arab Emirates</SelectItem>
+                  </SelectContent>
+                </Select>
+                {nationalityInvalid && (
+                  <p id={`nationality-${passenger.id}-error`} className="mt-1 text-sm text-red-600">
+                    Nationality is required
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor={`gender-${passenger.id}`}>Gender</Label>
+                <Select
+                  value={passenger.gender}
+                  onValueChange={(value) => updatePassenger(passenger.id, "gender", value)}
+                >
+                  <SelectTrigger
+                    id={`gender-${passenger.id}`}
+                    aria-invalid={genderInvalid}
+                    aria-describedby={genderInvalid ? `gender-${passenger.id}-error` : undefined}
+                    className={cn(genderInvalid && "border-red-500 focus-visible:ring-red-500")}
+                  >
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                {genderInvalid && (
+                  <p id={`gender-${passenger.id}-error`} className="mt-1 text-sm text-red-600">
+                    Gender is required
+                  </p>
+                )}
+              </div>
+            </div>
 
-      </CardContent>
-    </Card>
-  )
+            <div>
+              <Label>Date of birth</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <Select
+                  value={passenger.dateOfBirth.day}
+                  onValueChange={(value) => updatePassengerDateOfBirth(passenger.id, "day", value)}
+                >
+                  <SelectTrigger
+                    aria-invalid={dobInvalid}
+                    aria-describedby={dobInvalid ? `dob-${passenger.id}-error` : undefined}
+                    className={cn(dobInvalid && "border-red-500 focus-visible:ring-red-500")}
+                  >
+                    <SelectValue placeholder="DD" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {days.map((day) => (
+                      <SelectItem key={day} value={day}>
+                        {day}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={passenger.dateOfBirth.month}
+                  onValueChange={(value) => updatePassengerDateOfBirth(passenger.id, "month", value)}
+                >
+                  <SelectTrigger
+                    aria-invalid={dobInvalid}
+                    aria-describedby={dobInvalid ? `dob-${passenger.id}-error` : undefined}
+                    className={cn(dobInvalid && "border-red-500 focus-visible:ring-red-500")}
+                  >
+                    <SelectValue placeholder="Month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((month, index) => (
+                      <SelectItem key={month} value={(index + 1).toString()}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={passenger.dateOfBirth.year}
+                  onValueChange={(value) => updatePassengerDateOfBirth(passenger.id, "year", value)}
+                >
+                  <SelectTrigger
+                    aria-invalid={dobInvalid}
+                    aria-describedby={dobInvalid ? `dob-${passenger.id}-error` : undefined}
+                    className={cn(dobInvalid && "border-red-500 focus-visible:ring-red-500")}
+                  >
+                    <SelectValue placeholder="YYYY" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {dobInvalid && (
+                <p id={`dob-${passenger.id}-error`} className="mt-1 text-sm text-red-600">
+                  Date of birth is required
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor={`passport-id-${passenger.id}`}>Passport or ID number</Label>
+                <Input
+                  id={`passport-id-${passenger.id}`}
+                  placeholder="Passport or ID number"
+                  value={passenger.passportNumber}
+                  onChange={(e) => updatePassenger(passenger.id, "passportNumber", e.target.value)}
+                  aria-invalid={passportInvalid}
+                  aria-describedby={passportInvalid ? `passport-${passenger.id}-error` : undefined}
+                  className={cn(passportInvalid && "border-red-500 focus-visible:ring-red-500")}
+                />
+                {passportInvalid && (
+                  <p id={`passport-${passenger.id}-error`} className="mt-1 text-sm text-red-600">
+                    Passport or ID number is required
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label>Passport or ID expiration date</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <Select
+                    disabled={passenger.noExpiration}
+                    value={passenger.passportExpiration.day}
+                    onValueChange={(value) => updatePassengerPassportExpiration(passenger.id, "day", value)}
+                  >
+                    <SelectTrigger
+                      aria-invalid={passExpInvalid}
+                      aria-describedby={passExpInvalid ? `pass-exp-${passenger.id}-error` : undefined}
+                      className={cn(passExpInvalid && "border-red-500 focus-visible:ring-red-500")}
+                    >
+                      <SelectValue placeholder="DD" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {days.map((day) => (
+                        <SelectItem key={day} value={day}>
+                          {day}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    disabled={passenger.noExpiration}
+                    value={passenger.passportExpiration.month}
+                    onValueChange={(value) => updatePassengerPassportExpiration(passenger.id, "month", value)}
+                  >
+                    <SelectTrigger
+                      aria-invalid={passExpInvalid}
+                      aria-describedby={passExpInvalid ? `pass-exp-${passenger.id}-error` : undefined}
+                      className={cn(passExpInvalid && "border-red-500 focus-visible:ring-red-500")}
+                    >
+                      <SelectValue placeholder="Month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {months.map((month, index) => (
+                        <SelectItem key={month} value={(index + 1).toString()}>
+                          {month}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    disabled={passenger.noExpiration}
+                    value={passenger.passportExpiration.year}
+                    onValueChange={(value) => updatePassengerPassportExpiration(passenger.id, "year", value)}
+                  >
+                    <SelectTrigger
+                      aria-invalid={passExpInvalid}
+                      aria-describedby={passExpInvalid ? `pass-exp-${passenger.id}-error` : undefined}
+                      className={cn(passExpInvalid && "border-red-500 focus-visible:ring-red-500")}
+                    >
+                      <SelectValue placeholder="YYYY" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {years.map((year) => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {!passenger.noExpiration && passExpInvalid && (
+                  <p id={`pass-exp-${passenger.id}-error`} className="mt-1 text-sm text-red-600">
+                    Passport expiration date is required
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id={`no-expiration-${passenger.id}`}
+                checked={passenger.noExpiration}
+                onCheckedChange={(checked) => updatePassenger(passenger.id, "noExpiration", !!checked)}
+              />
+              <Label htmlFor={`no-expiration-${passenger.id}`}>No expiration</Label>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <main className="flex-1 container mx-auto px-4 py-8 md:py-12 lg:py-16">
-        {/* Flight Detail Progress Bar */}
-        <div className="bg-white py-4 border-b mb-8 rounded-lg shadow-sm">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between text-center">
-              {/* Step 1: Search (Completed) */}
-              <div className="flex flex-col items-center flex-1 min-w-0">
-                <div className="w-6 h-6 rounded-full bg-[#1479C9] flex items-center justify-center text-white">
-                  <Check className="h-4 w-4" />
-                </div>
-                <span className="text-sm mt-2 text-[#1479C9] whitespace-nowrap">Search</span>
-              </div>
-              {/* Line between Step 1 and 2 */}
-              <div className="flex-1 h-0.5 bg-[#1479C9] mx-2"></div>
-              {/* Step 2: Passenger details (Current) */}
-              <div className="flex flex-col items-center flex-1 min-w-0">
-                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-semibold">
-                  2
-                </div>
-                <span className="text-sm mt-2 text-gray-500 whitespace-nowrap">Passenger detail</span>
-              </div>
-              {/* Line between Step 2 and 3 */}
-              <div className="flex-1 h-0.5 bg-gray-200 mx-2"></div>
-              {/* Step 3: Baggage (Future) */}
-              <div className="flex flex-col items-center flex-1 min-w-0">
-                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-semibold">
-                  3
-                </div>
-                <span className="text-sm mt-2 text-gray-500 whitespace-nowrap">Baggage</span>
-              </div>
-              {/* Line between Step 3 and 4 */}
-              <div className="flex-1 h-0.5 bg-gray-200 mx-2"></div>
-              {/* Step 4: Ticket fare (Future) */}
-              <div className="flex flex-col items-center flex-1 min-w-0">
-                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-semibold">
-                  4
-                </div>
-                <span className="text-sm mt-2 text-gray-500 whitespace-nowrap">Ticket fare</span>
-              </div>
-              {/* Line between Step 4 and 5 */}
-              <div className="flex-1 h-0.5 bg-gray-200 mx-2"></div>
-              {/* Step 5: Seating (Future) */}
-              <div className="flex flex-col items-center flex-1 min-w-0">
-                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-semibold">
-                  5
-                </div>
-                <span className="text-sm mt-2 text-gray-500 whitespace-nowrap">Seating</span>
-              </div>
-              {/* Line between Step 5 and 6 */}
-              <div className="flex-1 h-0.5 bg-gray-200 mx-2"></div>
-              {/* Step 6: Overview & payment (Future) */}
-              <div className="flex flex-col items-center flex-1 min-w-0">
-                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-semibold">
-                  6
-                </div>
-                <span className="text-sm mt-2 text-gray-500 whitespace-nowrap">Overview & payment</span>
-              </div>
-            </div>
+        {/* Top Banner */}
+        <TopBanner />
+
+        {/* Global validation alert */}
+        {globalError && (
+          <div className="mb-4">
+            <Alert variant="destructive" role="alert" aria-live="assertive">
+              <AlertTitle>Incomplete passenger details</AlertTitle>
+              <AlertDescription>{globalError}</AlertDescription>
+            </Alert>
           </div>
-        </div>
+        )}
 
         {/* Trip Summary Section */}
         <Card className="shadow-sm mb-8">
@@ -707,7 +800,8 @@ export default function FlightBookingForm() {
                         </div>
                       </div>
                     </div>
-                    {/* Special Requests */}
+
+                    {/* Special Requests (static demo) */}
                     <div>
                       <h4 className="font-medium mb-2 text-sm">Special Requests</h4>
                       <div className="flex gap-2">
@@ -771,7 +865,7 @@ export default function FlightBookingForm() {
                       <p className="font-medium">1x personal item</p>
                       <p className="text-sm text-muted-foreground">Must fit under front seat</p>
                       <Image
-                        src="/placeholder.svg?height=80&width=80&text=Backpack"
+                        src="/placeholder.svg?height=80&width=80"
                         alt="Backpack"
                         width={80}
                         height={80}
@@ -795,18 +889,8 @@ export default function FlightBookingForm() {
                       <p className="font-medium">Carry-on bundle</p>
                       <p className="text-sm text-muted-foreground">1x personal item (3 kg) + 1x cabin bag (8 kg)</p>
                       <div className="flex items-center justify-center gap-2 my-4">
-                        <Image
-                          src="/placeholder.svg?height=60&width=60&text=Backpack"
-                          alt="Backpack"
-                          width={60}
-                          height={60}
-                        />
-                        <Image
-                          src="/placeholder.svg?height=60&width=60&text=Suitcase"
-                          alt="Small Suitcase"
-                          width={60}
-                          height={60}
-                        />
+                        <Image src="/placeholder.svg?height=60&width=60" alt="Backpack" width={60} height={60} />
+                        <Image src="/placeholder.svg?height=60&width=60" alt="Small Suitcase" width={60} height={60} />
                       </div>
                       <p className="text-sm text-muted-foreground">15 x 30 x 40 cm 20 x 40 x 55 cm</p>
                       <p className="font-semibold text-lg mt-2">29.64 €</p>
@@ -838,7 +922,7 @@ export default function FlightBookingForm() {
                     <div className="flex flex-col items-center text-center space-y-2">
                       <p className="font-medium">12 kg</p>
                       <Image
-                        src="/placeholder.svg?height=100&width=100&text=Large+Suitcase"
+                        src="/placeholder.svg?height=100&width=100"
                         alt="Large Suitcase"
                         width={100}
                         height={100}
@@ -851,10 +935,10 @@ export default function FlightBookingForm() {
                           variant="outline"
                           size="icon"
                           className="w-8 h-8 bg-transparent"
-                          onClick={() => setCheckedBaggage12kgQuantity(Math.max(0, checkedBaggage12kgQuantity - 1))}
+                          onClick={() => setCheckedBaggage12kgQuantity((q) => Math.max(0, q - 1))}
                           disabled={noCheckedBaggage || checkedBaggage12kgQuantity === 0}
                         >
-                          -
+                          {"-"}
                         </Button>
                         <Input
                           type="number"
@@ -867,10 +951,10 @@ export default function FlightBookingForm() {
                           variant="outline"
                           size="icon"
                           className="w-8 h-8 bg-transparent"
-                          onClick={() => setCheckedBaggage12kgQuantity(checkedBaggage12kgQuantity + 1)}
+                          onClick={() => setCheckedBaggage12kgQuantity((q) => q + 1)}
                           disabled={noCheckedBaggage}
                         >
-                          +
+                          {"+"}
                         </Button>
                       </div>
                     </div>
@@ -883,7 +967,7 @@ export default function FlightBookingForm() {
                     <div className="flex flex-col items-center text-center space-y-2">
                       <p className="font-medium">20 kg</p>
                       <Image
-                        src="/placeholder.svg?height=100&width=100&text=Large+Suitcase"
+                        src="/placeholder.svg?height=100&width=100"
                         alt="Large Suitcase"
                         width={100}
                         height={100}
@@ -896,10 +980,10 @@ export default function FlightBookingForm() {
                           variant="outline"
                           size="icon"
                           className="w-8 h-8 bg-transparent"
-                          onClick={() => setCheckedBaggage20kgQuantity(Math.max(0, checkedBaggage20kgQuantity - 1))}
+                          onClick={() => setCheckedBaggage20kgQuantity((q) => Math.max(0, q - 1))}
                           disabled={noCheckedBaggage || checkedBaggage20kgQuantity === 0}
                         >
-                          -
+                          {"-"}
                         </Button>
                         <Input
                           type="number"
@@ -912,10 +996,10 @@ export default function FlightBookingForm() {
                           variant="outline"
                           size="icon"
                           className="w-8 h-8 bg-transparent"
-                          onClick={() => setCheckedBaggage20kgQuantity(checkedBaggage20kgQuantity + 1)}
+                          onClick={() => setCheckedBaggage20kgQuantity((q) => q + 1)}
                           disabled={noCheckedBaggage}
                         >
-                          +
+                          {"+"}
                         </Button>
                       </div>
                     </div>
@@ -939,12 +1023,11 @@ export default function FlightBookingForm() {
             </Card>
           </div>
 
-          {/* Right Column: Price Summary & Lock Price */}
+          {/* Right Column: Price Summary */}
           <div className="lg:col-span-1 space-y-8">
-            {/* Price Summary */}
             <Card className="shadow-sm">
               <CardContent className="p-6 space-y-4">
-                {passengers.map((passenger, index) => (
+                {passengers.map((passenger) => (
                   <div key={passenger.id} className="flex justify-between items-center text-sm">
                     <span>
                       1x {passenger.type === "adult" ? "Adult" : passenger.type === "child" ? "Child" : "Infant"}
@@ -964,7 +1047,6 @@ export default function FlightBookingForm() {
                   <span>1x Saver fare</span>
                   <span>Included</span>
                 </div>
-
                 <div className="flex justify-between items-center text-sm">
                   <span>1x Kiwi.com Guarantee</span>
                   <span>$34</span>
@@ -991,10 +1073,7 @@ export default function FlightBookingForm() {
         <Button variant="outline" className="text-muted-foreground border-input hover:bg-accent bg-transparent">
           <ChevronLeft className="h-4 w-4 mr-2" /> Back
         </Button>
-        <Button onClick={() => {
-          n.push("/flight/seat/1")
-        }
-        } className="bg-[#1479C9] hover:bg-sky-600 text-white font-semibold py-3">
+        <Button onClick={handleContinue} className="bg-[#1479C9] hover:bg-sky-600 text-white font-semibold py-3">
           Continue <ChevronRight className="h-4 w-4 ml-2" />
         </Button>
       </footer>
