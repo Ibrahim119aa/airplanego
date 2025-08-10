@@ -222,7 +222,7 @@ export default function PaymentConfirmation() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <CalendarClock className="h-4 w-4 " />
-                    <span>Passport Expiry Date</span>
+                    <span>12/3/2025</span>
                   </div>
                 </div>
                 <div className="flex justify-end md:justify-start">
@@ -389,49 +389,7 @@ export default function PaymentConfirmation() {
             </CardContent>
           </Card>
 
-          {/* AirHelp+ */}
-          <Card>
-            <CardHeader>
-              <CardTitle>AirHelp+</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col md:flex-row items-center gap-6">
-              <div className="flex-1 space-y-4">
-                <ul className="space-y-2 text-sm text-gray-700">
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                    <span>
-                      {
-                        "Flight compensation service: up to 600 € for flight delays, cancellations, and airline overbookings."
-                      }
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                    <span>
-                      {
-                        "Cost reimbursement service: up to 6,000 € for extra costs caused by a delay, including lost baggage and missed reservations (hotels, flights, etc)."
-                      }
-                    </span>
-                  </li>
-                </ul>
-                <div className="flex gap-2">
-                  <Button variant="outline">Add for $19.99</Button>
-                  <Button variant="link" className="text-sm">
-                    Learn more
-                  </Button>
-                </div>
-                <p className="text-xs text-gray-500">Final price for all passengers and flights</p>
-              </div>
-              <Image
-                src="/placeholder.svg?height=150&width=150"
-                alt="AirHelp illustration"
-                width={150}
-                height={150}
-                className="flex-shrink-0"
-              />
-            </CardContent>
-          </Card>
-
+         
           {/* Request invoice (opens dialog) */}
           <Card>
             <CardHeader>
