@@ -133,11 +133,7 @@ export default function FlightBookingForm() {
     )
   }
 
-  const updatePassengerPassportExpiration = (id: string, field: "day" | "month" | "year", value: string) => {
-    setPassengers((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, passportExpiration: { ...p.passportExpiration, [field]: value } } : p)),
-    )
-  }
+
 
   const calculateTotalPrice = () => {
     const basePrice = 276
@@ -168,7 +164,8 @@ export default function FlightBookingForm() {
     if (isEmpty(p.gender)) return true
     if (isEmpty(p.dateOfBirth.day) || isEmpty(p.dateOfBirth.month) || isEmpty(p.dateOfBirth.year)) return true
     if (isEmpty(p.passportNumber)) return true
-    if (!p.noExpiration) {
+    if (p.noExpiration) return true;
+    if (p.noExpiration) {
       if (
         isEmpty(p.passportExpiration.day) ||
         isEmpty(p.passportExpiration.month) ||
@@ -204,6 +201,42 @@ export default function FlightBookingForm() {
     setGlobalError(null)
     router.push("/flight/seat/1")
   }
+  const updatePassengerPassportExpiration = (
+    id: string,
+    field: "day" | "month" | "year",
+    value: string
+  ) => {
+    setPassengers((prev) =>
+      prev.map((p) => {
+        if (p.id !== id) return p;
+
+        const updatedPassportExpiration = {
+          ...p.passportExpiration,
+          [field]: value,
+        };
+
+        const { day, month, year } = updatedPassportExpiration;
+        let passportExpired = false;
+
+        if (day && month && year) {
+          const expDate = new Date(Number(year), Number(month) - 1, Number(day));
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          if (expDate < today) {
+            passportExpired = true;
+          }
+        }
+
+
+        return {
+          ...p,
+          passportExpiration: updatedPassportExpiration,
+          noExpiration: passportExpired,
+        };
+      })
+    );
+  };
 
   const renderPassengerForm = (passenger: Passenger, index: number) => {
     const givenNamesInvalid = showErrors && isEmpty(passenger.givenNames)
@@ -218,7 +251,7 @@ export default function FlightBookingForm() {
     const passportInvalid = showErrors && isEmpty(passenger.passportNumber)
     const passExpInvalid =
       showErrors &&
-      !passenger.noExpiration &&
+      passenger.noExpiration ||
       (isEmpty(passenger.passportExpiration.day) ||
         isEmpty(passenger.passportExpiration.month) ||
         isEmpty(passenger.passportExpiration.year))
@@ -458,7 +491,6 @@ export default function FlightBookingForm() {
                 <Label>Passport or ID expiration date</Label>
                 <div className="grid grid-cols-3 gap-2">
                   <Select
-                    disabled={passenger.noExpiration}
                     value={passenger.passportExpiration.day}
                     onValueChange={(value) => updatePassengerPassportExpiration(passenger.id, "day", value)}
                   >
@@ -478,7 +510,6 @@ export default function FlightBookingForm() {
                     </SelectContent>
                   </Select>
                   <Select
-                    disabled={passenger.noExpiration}
                     value={passenger.passportExpiration.month}
                     onValueChange={(value) => updatePassengerPassportExpiration(passenger.id, "month", value)}
                   >
@@ -498,7 +529,7 @@ export default function FlightBookingForm() {
                     </SelectContent>
                   </Select>
                   <Select
-                    disabled={passenger.noExpiration}
+
                     value={passenger.passportExpiration.year}
                     onValueChange={(value) => updatePassengerPassportExpiration(passenger.id, "year", value)}
                   >
@@ -518,9 +549,9 @@ export default function FlightBookingForm() {
                     </SelectContent>
                   </Select>
                 </div>
-                {!passenger.noExpiration && passExpInvalid && (
+                {passenger.noExpiration && passExpInvalid && (
                   <p id={`pass-exp-${passenger.id}-error`} className="mt-1 text-sm text-red-600">
-                    Passport expiration date is required
+                    Passport expiration date is empty or provide expire date
                   </p>
                 )}
               </div>
