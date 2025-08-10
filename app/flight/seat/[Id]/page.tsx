@@ -17,7 +17,7 @@ interface Seat {
   letter: string
   type: "economy" | "premium" | "business"
   status: "available" | "occupied" | "selected"
-  price?: number
+  price: number // ensure seats always have a price (paid-only)
 }
 
 interface Flight {
@@ -33,6 +33,7 @@ interface Flight {
 interface FlightSeatSelection {
   flightId: string
   seatId: string | null
+  autoAssigned: boolean // true when user skipped and we assigned randomly (no charge)
 }
 
 type PageProps = {
@@ -44,19 +45,20 @@ type PageProps = {
 export default function SeatSelection({ params }: PageProps) {
   const [activeFlightTab, setActiveFlightTab] = useState<string>("outbound")
   const [flightSelections, setFlightSelections] = useState<FlightSeatSelection[]>([
-    { flightId: "outbound", seatId: null },
-    { flightId: "return", seatId: null },
+    { flightId: "outbound", seatId: null, autoAssigned: false },
+    { flightId: "return", seatId: null, autoAssigned: false },
   ])
   const n = useRouter()
 
-  // Generate seat map data
+  // Generate seat map data: Paid-only seats (no free seats to choose).
+  // Example pricing: economy $15, premium $45-$75, business $150
   const generateSeats = (): Seat[] => {
     const seats: Seat[] = []
     const letters = ["A", "B", "C", "D", "E", "F"]
     for (let row = 1; row <= 30; row++) {
       for (const letter of letters) {
         let type: "economy" | "premium" | "business" = "economy"
-        let price = 0
+        let price = 15 // base economy price (paid-only)
         if (row <= 3) {
           type = "business"
           price = 150
@@ -66,6 +68,9 @@ export default function SeatSelection({ params }: PageProps) {
         } else if (row >= 12 && row <= 14) {
           type = "premium"
           price = 45
+        } else {
+          type = "economy"
+          price = 15
         }
         const isOccupied = Math.random() < 0.3
         seats.push({
@@ -112,9 +117,6 @@ export default function SeatSelection({ params }: PageProps) {
     if (!activeFlight || !activeFlight.hasSeatSelection) return
     const seat = activeFlight.seats.find((s) => s.id === seatId)
     if (seat && seat.status === "available") {
-      const currentSelection = flightSelections.find((fs) => fs.flightId === activeFlightTab)
-      const currentSeatId = currentSelection?.seatId
-
       const updatedFlights = flights.map((flight) => {
         if (flight.id === activeFlightTab) {
           const newSeats = flight.seats.map((s) => {
@@ -132,7 +134,9 @@ export default function SeatSelection({ params }: PageProps) {
       setFlights(updatedFlights)
 
       const updatedSelections = flightSelections.map((fs) =>
-        fs.flightId === activeFlightTab ? { ...fs, seatId: currentSeatId === seatId ? null : seatId } : fs,
+        fs.flightId === activeFlightTab
+          ? { ...fs, seatId, autoAssigned: false } // manual selection => charge applies
+          : fs,
       )
       setFlightSelections(updatedSelections)
     }
@@ -149,8 +153,9 @@ export default function SeatSelection({ params }: PageProps) {
       return flight
     })
     setFlights(updatedFlights)
-
-    const updatedSelections = flightSelections.map((fs) => (fs.flightId === flightId ? { ...fs, seatId: null } : fs))
+    const updatedSelections = flightSelections.map((fs) =>
+      fs.flightId === flightId ? { ...fs, seatId: null, autoAssigned: false } : fs,
+    )
     setFlightSelections(updatedSelections)
   }
 
@@ -186,46 +191,37 @@ export default function SeatSelection({ params }: PageProps) {
     (flight) => flight.hasSeatSelection && flightSelections.find((fs) => fs.flightId === flight.id)?.seatId === null,
   )
 
-  // NEW: pick default random seat (prefer free economy; else lowest-cost available)
-  const pickDefaultSeat = (seats: Seat[]): Seat | undefined => {
-    const freeEconomy = seats.filter((s) => s.status === "available" && s.type === "economy" && (s.price ?? 0) === 0)
-    if (freeEconomy.length > 0) {
-      return freeEconomy[Math.floor(Math.random() * freeEconomy.length)]
-    }
+  // Random available seat (used for skip flow). Random, not cheapest, per requirement.
+  const pickRandomAvailableSeat = (seats: Seat[]): Seat | undefined => {
     const avail = seats.filter((s) => s.status === "available")
     if (avail.length === 0) return undefined
-    const minPrice = Math.min(...avail.map((s) => s.price ?? 0))
-    const cheapest = avail.filter((s) => (s.price ?? 0) === minPrice)
-    return cheapest[Math.floor(Math.random() * cheapest.length)]
+    const idx = Math.floor(Math.random() * avail.length)
+    return avail[idx]
   }
 
-  // NEW: assign default seats where needed
+  // Assign random seats (no extra cost) for flights that require selection but don't have one yet
   const assignDefaultRandomSeats = () => {
     const selectionsByFlight: Record<string, string> = {}
-
     const updatedFlights = flights.map((flight) => {
       if (!flight.hasSeatSelection) return flight
       const currentSel = flightSelections.find((fs) => fs.flightId === flight.id)
       if (currentSel?.seatId) return flight
-
-      const seat = pickDefaultSeat(flight.seats)
+      const seat = pickRandomAvailableSeat(flight.seats)
       if (!seat) return flight
-
       selectionsByFlight[flight.id] = seat.id
-
       const newSeats = flight.seats.map((s) => (s.id === seat.id ? { ...s, status: "selected" as const } : s))
       return { ...flight, seats: newSeats }
     })
-
     const updatedSelections = flightSelections.map((fs) =>
-      selectionsByFlight[fs.flightId] ? { ...fs, seatId: selectionsByFlight[fs.flightId] } : fs,
+      selectionsByFlight[fs.flightId]
+        ? { ...fs, seatId: selectionsByFlight[fs.flightId], autoAssigned: true } // auto-assigned => no charge
+        : fs,
     )
-
     setFlights(updatedFlights)
     setFlightSelections(updatedSelections)
   }
 
-  // NEW: handler for skipping manual selection and continuing
+  // Skip manual selection and continue (auto-assign random seats at no cost)
   const handleContinueWithoutSeats = () => {
     assignDefaultRandomSeats()
     n.push("/Booking/1")
@@ -236,6 +232,7 @@ export default function SeatSelection({ params }: PageProps) {
       <React.Suspense fallback={null}>
         <TopBanner />
       </React.Suspense>
+
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Seat Map */}
@@ -262,11 +259,11 @@ export default function SeatSelection({ params }: PageProps) {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-green-500 rounded"></div>
-                    <span>Premium ($45-75)</span>
+                    <span>Premium ($45–75)</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                    <span>Economy (Free)</span>
+                    <span>Economy ($15)</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-gray-400 rounded"></div>
@@ -303,7 +300,7 @@ export default function SeatSelection({ params }: PageProps) {
                               <div className="text-xs text-green-600 mt-1">
                                 {"Seat "}
                                 {selection.seatId}
-                                {" selected"}
+                                {selection.autoAssigned ? " assigned (random)" : " selected"}
                               </div>
                             )
                           ) : (
@@ -336,11 +333,13 @@ export default function SeatSelection({ params }: PageProps) {
                         </Button>
                       )}
                     </div>
+
                     {activeFlight.hasSeatSelection ? (
                       <div className="relative">
                         <div className="flex justify-center mb-4">
                           <Plane className="w-8 h-8 text-[#1479C9]" />
                         </div>
+
                         <div className="max-h-96 overflow-y-auto border rounded-lg p-4 bg-gradient-to-b from-blue-50 to-white">
                           <div className="space-y-2">
                             {Array.from({ length: 30 }, (_, rowIndex) => {
@@ -353,6 +352,7 @@ export default function SeatSelection({ params }: PageProps) {
                                     {rowNumber}
                                     {isExitRow && <span className="text-red-500 ml-0.5">*</span>}
                                   </span>
+
                                   {/* Left side seats (A, B, C) */}
                                   <div className="flex gap-1">
                                     {rowSeats.slice(0, 3).map((seat) => (
@@ -363,18 +363,20 @@ export default function SeatSelection({ params }: PageProps) {
                                         className={`w-6 h-6 rounded text-xs font-medium transition-colors ${getSeatColor(
                                           seat,
                                         )} ${seat.status === "occupied" ? "cursor-not-allowed" : "cursor-pointer"}`}
-                                        title={`Seat ${seat.id} - ${seat.type} ${
-                                          (seat.price ?? 0) > 0 ? `$${seat.price}` : "Free"
-                                        }${isExitRow ? " (Emergency Exit)" : ""}`}
+                                        title={`Seat ${seat.id} - ${seat.type} $${seat.price}${
+                                          isExitRow ? " (Emergency Exit)" : ""
+                                        }`}
                                       >
                                         {seat.letter}
                                       </button>
                                     ))}
                                   </div>
+
                                   {/* Aisle */}
                                   <div className="w-4 flex items-center justify-center">
                                     {isExitRow && <span className="text-xs text-red-500 font-bold">*</span>}
                                   </div>
+
                                   {/* Right side seats (D, E, F) */}
                                   <div className="flex gap-1">
                                     {rowSeats.slice(3, 6).map((seat) => (
@@ -385,9 +387,9 @@ export default function SeatSelection({ params }: PageProps) {
                                         className={`w-6 h-6 rounded text-xs font-medium transition-colors ${getSeatColor(
                                           seat,
                                         )} ${seat.status === "occupied" ? "cursor-not-allowed" : "cursor-pointer"}`}
-                                        title={`Seat ${seat.id} - ${seat.type} ${
-                                          (seat.price ?? 0) > 0 ? `$${seat.price}` : "Free"
-                                        }${isExitRow ? " (Emergency Exit)" : ""}`}
+                                        title={`Seat ${seat.id} - ${seat.type} $${seat.price}${
+                                          isExitRow ? " (Emergency Exit)" : ""
+                                        }`}
                                       >
                                         {seat.letter}
                                       </button>
@@ -399,10 +401,10 @@ export default function SeatSelection({ params }: PageProps) {
                           </div>
                         </div>
 
-                        {/* NEW: helper note about skipping */}
+                        {/* Note about skipping */}
                         <div className="mt-3 text-xs text-gray-600">
-                          Prefer not to pick seats now? You can continue without choosing and we’ll assign free seats
-                          automatically.
+                          Prefer not to pick a paid seat? Continue without choosing and we’ll assign a random seat at no
+                          extra cost.
                         </div>
                       </div>
                     ) : (
@@ -426,10 +428,10 @@ export default function SeatSelection({ params }: PageProps) {
                                 <p className="text-sm text-green-700">
                                   {(selectedSeatData?.type.charAt(0).toUpperCase() ?? "") +
                                     (selectedSeatData?.type.slice(1) ?? "")}{" "}
-                                  {"class"}
-                                  {(selectedSeatData?.price || 0) > 0
-                                    ? ` - Additional $${selectedSeatData?.price}`
-                                    : " - No additional cost"}
+                                  {"class"}{" "}
+                                  {activeSelection.autoAssigned
+                                    ? " - Randomly assigned (no extra cost)"
+                                    : ` - Additional $${selectedSeatData?.price ?? 0}`}{" "}
                                   {hasEmergencyExit(selectedSeatData?.row || 0) && " (Emergency Exit Row)"}
                                 </p>
                               </div>
@@ -477,9 +479,11 @@ export default function SeatSelection({ params }: PageProps) {
                     <span>1x Kiwi.com Guarantee</span>
                     <span>$35</span>
                   </div>
-                  {/* Seat selections with additional costs */}
+
+                  {/* Seat selections with additional costs (manual paid selections only) */}
                   {flightSelections.map((selection) => {
                     if (!selection.seatId) return null
+                    if (selection.autoAssigned) return null // skip charging for auto-assigned random seats
                     const flight = flights.find((f) => f.id === selection.flightId)
                     if (!flight?.hasSeatSelection) return null
                     const seat = flight?.seats.find((s) => s.id === selection.seatId)
@@ -496,6 +500,7 @@ export default function SeatSelection({ params }: PageProps) {
                     }
                     return null
                   })}
+
                   <hr />
                   <div className="flex justify-between font-bold text-lg">
                     <span>Total (USD)</span>
@@ -504,7 +509,7 @@ export default function SeatSelection({ params }: PageProps) {
                       {(
                         418.49 +
                         flightSelections.reduce((total, selection) => {
-                          if (!selection.seatId) return total
+                          if (!selection.seatId || selection.autoAssigned) return total
                           const flight = flights.find((f) => f.id === selection.flightId)
                           if (!flight?.hasSeatSelection) return total
                           const seat = flight?.seats.find((s) => s.id === selection.seatId)
@@ -532,18 +537,16 @@ export default function SeatSelection({ params }: PageProps) {
             <ChevronLeft className="w-4 h-4" />
             Back
           </Button>
-
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            {/* NEW: Continue without choosing seats */}
+            {/* Continue without choosing seats (random, no cost) */}
             <Button
               variant="outline"
               className="w-full sm:w-auto bg-transparent"
               onClick={handleContinueWithoutSeats}
-              title="We will auto-assign free seats if available"
+              title="We’ll assign a random seat at no extra cost"
             >
               Continue without choosing seats
             </Button>
-
             <Button
               onClick={() => n.push("/Booking/1")}
               className="bg-[#1479C9] hover:bg-[#1479C9]/90 text-white flex items-center gap-2 w-full sm:w-auto"

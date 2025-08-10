@@ -4,19 +4,24 @@ import React, { useEffect, useState, Suspense } from "react"
 import Image from "next/image"
 import {
   Armchair,
+  BadgeIcon as IdCard,
+  CalendarClock,
   Calendar,
   CheckCircle,
   Info,
-  Check,
   Mail,
   Phone,
   ShieldAlert,
-  LuggageIcon,
   Ticket,
   User,
   AlertCircle,
+  Check,
 } from "lucide-react"
-const TopBanner=React.lazy(()=>import("@/components/General/TopBanner"));
+import { LuggageIcon } from "lucide-react"
+
+const TopBanner = React.lazy(() => import("@/components/General/TopBanner"))
+const CheckoutForm = React.lazy(() => import("@/components/Stripe/StripeCheckoutForm"))
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -27,8 +32,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-
-const CheckoutForm = React.lazy(() => import("@/components/Stripe/StripeCheckoutForm"))
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 type BillingType = "personal" | "company"
 
@@ -55,7 +66,11 @@ export default function PaymentConfirmation() {
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [isTripDetailsOpen, setIsTripDetailsOpen] = useState(false)
 
-  // New: Billing details state
+  // Invoice flow
+  const [isBillingDialogOpen, setIsBillingDialogOpen] = useState(false)
+  const [invoiceRequested, setInvoiceRequested] = useState(false)
+
+  // Billing details state
   const [billingType, setBillingType] = useState<BillingType>("personal")
   const [givenNames, setGivenNames] = useState("Mohammed")
   const [surnames, setSurnames] = useState("Alhamayda")
@@ -95,10 +110,18 @@ export default function PaymentConfirmation() {
     if (found) setSelectedCountry(found)
   }
 
+  const saveBillingDetails = () => {
+    // Minimal validation could be added here if desired.
+    setInvoiceRequested(true)
+    setIsBillingDialogOpen(false)
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8 lg:p-12">
-     
-<TopBanner/>
+      <Suspense fallback={<div className="h-10" />}>
+        <TopBanner />
+      </Suspense>
+
       <div className="mx-auto max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column */}
         <div className="lg:col-span-2 space-y-8">
@@ -108,17 +131,20 @@ export default function PaymentConfirmation() {
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Price Update!</AlertTitle>
               <AlertDescription>
-                The ticket price has changed from <span className="font-semibold">${originalPrice.toFixed(2)}</span> to{" "}
+                {"The ticket price has changed from "}
+                <span className="font-semibold">${originalPrice.toFixed(2)}</span>
+                {" to "}
                 <span className="font-semibold">${currentPrice.toFixed(2)}</span>. Please review before proceeding.
               </AlertDescription>
             </Alert>
           )}
+
           {paymentError && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Payment Error</AlertTitle>
               <AlertDescription>
-                {paymentError} Please check your details or try again. If the issue persists, contact support.
+                {paymentError} {"Please check your details or try again. If the issue persists, contact support."}
               </AlertDescription>
             </Alert>
           )}
@@ -191,12 +217,12 @@ export default function PaymentConfirmation() {
                     <span>12/03/1990</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Mail className="h-4 w-4" />
-                    <span>ibrahim.memon@example.com</span>
+                    <IdCard className="h-4 w-4 " />
+                    <span>Passport Number</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Phone className="h-4 w-4" />
-                    <span>+92 300 1234567</span>
+                    <CalendarClock className="h-4 w-4 " />
+                    <span>Passport Expiry Date</span>
                   </div>
                 </div>
                 <div className="flex justify-end md:justify-start">
@@ -302,12 +328,12 @@ export default function PaymentConfirmation() {
                   <h4 className="font-medium text-gray-700">Seating</h4>
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Armchair className="h-4 w-4" />
-                    <span>1x Random seat (Karachi - Dubai)</span>
+                    <span>{"1x Random seat (Karachi - Dubai)"}</span>
                     <Info className="h-4 w-4 text-gray-400" />
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Armchair className="h-4 w-4" />
-                    <span>1x Random seat (Dubai - Karachi)</span>
+                    <span>{"1x Random seat (Dubai - Karachi)"}</span>
                     <Info className="h-4 w-4 text-gray-400" />
                   </div>
                 </div>
@@ -374,15 +400,17 @@ export default function PaymentConfirmation() {
                   <li className="flex items-start gap-2">
                     <CheckCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
                     <span>
-                      Flight compensation service: up to {"600 €"} for flight delays, cancellations, and airline
-                      overbookings.
+                      {
+                        "Flight compensation service: up to 600 € for flight delays, cancellations, and airline overbookings."
+                      }
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
                     <span>
-                      Cost reimbursement service: up to {"6,000 €"} for extra costs caused by a delay, including lost
-                      baggage and missed reservations (hotels, flights, etc).
+                      {
+                        "Cost reimbursement service: up to 6,000 € for extra costs caused by a delay, including lost baggage and missed reservations (hotels, flights, etc)."
+                      }
                     </span>
                   </li>
                 </ul>
@@ -404,155 +432,28 @@ export default function PaymentConfirmation() {
             </CardContent>
           </Card>
 
-          {/* Billing details (matches the provided image layout) */}
+          {/* Request invoice (opens dialog) */}
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between w-full">
-                <CardTitle>Billing details</CardTitle>
+                <CardTitle>Invoices</CardTitle>
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                Use the name and address that match your payment method.
-              </p>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Personal vs Company */}
-              <div className="flex flex-wrap items-center gap-6">
-                <RadioGroup
-                  value={billingType}
-                  onValueChange={(v: string) => setBillingType(v as BillingType)}
-                  className="flex items-center gap-6"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem id="personal" value="personal" />
-                    <Label htmlFor="personal">Personal</Label>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Need a formal invoice for your order? Add your billing details and we’ll include it with your receipt.
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button variant="outline" onClick={() => setIsBillingDialogOpen(true)}>
+                  {invoiceRequested ? "Edit billing details" : "Request an invoice"}
+                </Button>
+                {invoiceRequested && (
+                  <div className="flex items-center gap-1 text-sm text-green-700">
+                    <Check className="h-4 w-4" />
+                    <span>Invoice details saved</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem id="company" value="company" />
-                    <Label htmlFor="company">Company</Label>
-                  </div>
-                </RadioGroup>
+                )}
               </div>
-
-              {/* Name/company rows */}
-              {billingType === "personal" ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="given-names">Given names</Label>
-                    <Input
-                      id="given-names"
-                      placeholder="John Michael"
-                      value={givenNames}
-                      onChange={(e) => setGivenNames(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="surnames">Surnames</Label>
-                    <Input
-                      id="surnames"
-                      placeholder="Doe"
-                      value={surnames}
-                      onChange={(e) => setSurnames(e.target.value)}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2 md:col-span-1">
-                    <Label htmlFor="company-name">Company name</Label>
-                    <Input
-                      id="company-name"
-                      placeholder="ABC Corp"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2 md:col-span-1">
-                    <Label htmlFor="vat-id">VAT/Tax ID (optional)</Label>
-                    <Input
-                      id="vat-id"
-                      placeholder="e.g., GB123456789"
-                      value={vatId}
-                      onChange={(e) => setVatId(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Country */}
-              <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
-                <Select value={selectedCountry.code} onValueChange={handleCountryChange}>
-                  <SelectTrigger id="country" className="w-full">
-                    <SelectValue
-                      placeholder="Select a country"
-                      aria-label={`Selected country ${selectedCountry?.name ?? ""}`}
-                    >
-                      {selectedCountry ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg leading-none">{selectedCountry.flag}</span>
-                          <span>{selectedCountry.name}</span>
-                        </div>
-                      ) : null}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {countries.map((c) => (
-                      <SelectItem key={c.code} value={c.code}>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg leading-none">{c.flag}</span>
-                          <span>{c.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Street address */}
-              <div className="space-y-2">
-                <Label htmlFor="street-address">Street address</Label>
-                <Input
-                  id="street-address"
-                  placeholder="123 Main St, Apt 4B"
-                  value={streetAddress}
-                  onChange={(e) => setStreetAddress(e.target.value)}
-                />
-              </div>
-
-              {/* City + Postal code */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input id="city" placeholder="London" value={city} onChange={(e) => setCity(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="postal-code">Postal code</Label>
-                  <Input
-                    id="postal-code"
-                    placeholder="SW1A 1AA"
-                    value={postalCode}
-                    onChange={(e) => setPostalCode(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Reference image (optional, collapsed by default) */}
-              <Collapsible>
-                <CollapsibleTrigger asChild>
-                  <Button variant="link" className="px-0 h-auto text-sm">
-                    Show reference image
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pt-2">
-                  <Image
-                    src="/images/billing-detail.webp"
-                    alt="Reference: Billing details layout"
-                    width={900}
-                    height={560}
-                    className="w-full rounded-md border"
-                  />
-                </CollapsibleContent>
-              </Collapsible>
             </CardContent>
           </Card>
 
@@ -574,7 +475,7 @@ export default function PaymentConfirmation() {
             </Card>
           </Collapsible>
 
-          {/* Pay with Stripe (stubbed) */}
+          {/* Pay with Stripe (stubbed for preview) */}
           <Suspense fallback={<div className="text-sm text-gray-500">Loading payment...</div>}>
             <CheckoutForm
               amount={currentPrice}
@@ -597,37 +498,270 @@ export default function PaymentConfirmation() {
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <span className="text-gray-600">1x Adult</span>
                 <span className="text-right font-medium">$277.07</span>
+
                 <span className="text-gray-600">1x Cabin baggage</span>
                 <span className="text-right font-medium">Included</span>
+
                 <span className="text-gray-600">1x Checked baggage 20 kg</span>
                 <span className="text-right font-medium">Included</span>
+
                 <span className="text-gray-600">1x Standard fare</span>
                 <span className="text-right font-medium">$78.01</span>
+
                 <span className="text-gray-600">1x Kiwi.com Guarantee</span>
                 <span className="text-right font-medium">$1.93</span>
               </div>
+
               <Separator />
+
               <div className="flex justify-between items-center text-lg font-bold">
                 <span>Total (USD)</span>
                 <span>${currentPrice.toFixed(2)}</span>
               </div>
               <p className="text-xs text-gray-500">
-                Includes all taxes, fees, surcharges, and Kiwi.com service fees. Kiwi.com service fees are calculated
-                per passenger and are not refundable.
+                {
+                  "Includes all taxes, fees, surcharges, and Kiwi.com service fees. Kiwi.com service fees are calculated per passenger and are not refundable."
+                }
               </p>
               <Button variant="link" className="p-0 h-auto text-sm">
                 View price breakdown
               </Button>
             </CardContent>
           </Card>
+
+          {/* Compact invoice summary when saved */}
+          {invoiceRequested && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Invoice details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Type</span>
+                  <span className="font-medium capitalize">{billingType}</span>
+                </div>
+                {billingType === "personal" ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Name</span>
+                    <span className="font-medium">
+                      {givenNames} {surnames}
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">Company</span>
+                      <span className="font-medium">{companyName || "-"}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">VAT/Tax ID</span>
+                      <span className="font-medium">{vatId || "-"}</span>
+                    </div>
+                  </>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Country</span>
+                  <span className="font-medium">
+                    {selectedCountry.flag} {selectedCountry.name}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Address</span>
+                  <span className="font-medium text-right">
+                    {streetAddress || "-"}
+                    {streetAddress ? ", " : ""}
+                    {city || ""}
+                    {postalCode ? `, ${postalCode}` : ""}
+                  </span>
+                </div>
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
+                    className="w-full bg-transparent"
+                    onClick={() => setIsBillingDialogOpen(true)}
+                  >
+                    Edit invoice details
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
       {/* Fixed Footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center shadow-lg">
         <Button variant="ghost">{"<"} Back</Button>
-        <Button className="px-8 py-2 text-lg font-semibold">Pay ${currentPrice.toFixed(2)} (USD)</Button>
+        <div className="flex items-center gap-3">
+          {invoiceRequested && (
+            <div className="hidden sm:flex items-center gap-2 text-xs text-green-700">
+              <Check className="h-4 w-4" />
+              <span>Invoice will be issued</span>
+            </div>
+          )}
+          <Button className="px-8 py-2 text-lg font-semibold">Pay ${currentPrice.toFixed(2)} (USD)</Button>
+        </div>
       </div>
+
+      {/* Billing details dialog (hidden until requested) */}
+      <Dialog open={isBillingDialogOpen} onOpenChange={setIsBillingDialogOpen}>
+        <DialogContent aria-describedby="billing-dialog-desc" className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Billing details</DialogTitle>
+            <DialogDescription id="billing-dialog-desc">
+              Use the name and address that match your payment method.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Personal vs Company */}
+            <div className="flex flex-wrap items-center gap-6">
+              <RadioGroup
+                value={billingType}
+                onValueChange={(v: string) => setBillingType(v as BillingType)}
+                className="flex items-center gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem id="personal" value="personal" />
+                  <Label htmlFor="personal">Personal</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem id="company" value="company" />
+                  <Label htmlFor="company">Company</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* Name/company rows */}
+            {billingType === "personal" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="given-names">Given names</Label>
+                  <Input
+                    id="given-names"
+                    placeholder="John Michael"
+                    value={givenNames}
+                    onChange={(e) => setGivenNames(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="surnames">Surnames</Label>
+                  <Input
+                    id="surnames"
+                    placeholder="Doe"
+                    value={surnames}
+                    onChange={(e) => setSurnames(e.target.value)}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2 md:col-span-1">
+                  <Label htmlFor="company-name">Company name</Label>
+                  <Input
+                    id="company-name"
+                    placeholder="ABC Corp"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-1">
+                  <Label htmlFor="vat-id">VAT/Tax ID (optional)</Label>
+                  <Input
+                    id="vat-id"
+                    placeholder="e.g., GB123456789"
+                    value={vatId}
+                    onChange={(e) => setVatId(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Country */}
+            <div className="space-y-2">
+              <Label htmlFor="country">Country</Label>
+              <Select value={selectedCountry.code} onValueChange={handleCountryChange}>
+                <SelectTrigger id="country" className="w-full">
+                  <SelectValue
+                    placeholder="Select a country"
+                    aria-label={`Selected country ${selectedCountry?.name ?? ""}`}
+                  >
+                    {selectedCountry ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg leading-none">{selectedCountry.flag}</span>
+                        <span>{selectedCountry.name}</span>
+                      </div>
+                    ) : null}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {countries.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg leading-none">{c.flag}</span>
+                        <span>{c.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Street address */}
+            <div className="space-y-2">
+              <Label htmlFor="street-address">Street address</Label>
+              <Input
+                id="street-address"
+                placeholder="123 Main St, Apt 4B"
+                value={streetAddress}
+                onChange={(e) => setStreetAddress(e.target.value)}
+              />
+            </div>
+
+            {/* City + Postal code */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="city">City</Label>
+                <Input id="city" placeholder="London" value={city} onChange={(e) => setCity(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="postal-code">Postal code</Label>
+                <Input
+                  id="postal-code"
+                  placeholder="SW1A 1AA"
+                  value={postalCode}
+                  onChange={(e) => setPostalCode(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Optional reference image */}
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button variant="link" className="px-0 h-auto text-sm">
+                  Show reference image
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2">
+                <Image
+                  src="/images/billing-detail.webp"
+                  alt="Reference: Billing details layout"
+                  width={900}
+                  height={560}
+                  className="w-full rounded-md border"
+                />
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+
+          <DialogFooter className="mt-6">
+            <Button variant="ghost" onClick={() => setIsBillingDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveBillingDetails}>Save billing details</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
