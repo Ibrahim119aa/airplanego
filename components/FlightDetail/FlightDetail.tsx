@@ -84,7 +84,8 @@ export default function FlightBookingForm() {
   const [globalError, setGlobalError] = useState<string | null>(null)
   const passengerRefs = useRef<Map<string, HTMLDivElement>>(new Map())
 
-  const years = useMemo(() => Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i), [])
+  const pasportyears = useMemo(() => Array.from({ length: 100 }, (_, i) => new Date().getFullYear() + i), [])
+  const dobyears = useMemo(() => Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i), [])
   const days = useMemo(() => Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, "0")), [])
   const months = [
     "January",
@@ -420,7 +421,7 @@ export default function FlightBookingForm() {
                     <SelectValue placeholder="YYYY" />
                   </SelectTrigger>
                   <SelectContent>
-                    {years.map((year) => (
+                    {dobyears.map((year) => (
                       <SelectItem key={year} value={year.toString()}>
                         {year}
                       </SelectItem>
@@ -509,7 +510,7 @@ export default function FlightBookingForm() {
                       <SelectValue placeholder="YYYY" />
                     </SelectTrigger>
                     <SelectContent>
-                      {years.map((year) => (
+                      {pasportyears.map((year) => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
                         </SelectItem>
