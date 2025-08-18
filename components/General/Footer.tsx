@@ -44,7 +44,7 @@ const Footer = () => {
                         </div>
                     </div>
 
-                    <div className="col-span-5 grid grid-cols-4  mt-4">
+                    <div className="col-span-5 grid lg:grid-cols-4 md:grid-cols-1  mt-4">
                         <div className="flex flex-col gap-2">
                             <h4 className="primary-heading">
                                 Company

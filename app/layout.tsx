@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import React from 'react';
-const Footer=React.lazy(()=>import("@/components/General/Footer"));
+const Footer = React.lazy(() => import("@/components/General/Footer"));
 
 const Header = React.lazy(() => import('@/components/General/Header'));
 import { Roboto, Poppins } from 'next/font/google';
@@ -29,12 +29,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${roboto.variable} ${poppins.variable}`}>
-      <Header />
+      {/* <Header /> */}
       <body>
 
         {children}
       </body>
-      <Footer/>
+      {/* <Footer /> */}
 
     </html>
   );

@@ -232,41 +232,44 @@ export default function SeatSelection({ params }: PageProps) {
       <React.Suspense fallback={null}>
         <TopBanner />
       </React.Suspense>
-
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {/* Seat Map */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Karachi → Dubai and back</h1>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+          <div className="xl:col-span-2 order-2 xl:order-1">
+            <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4 lg:p-6">
+              <div className="mb-4 sm:mb-6">
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-2">
+                  Karachi → Dubai and back
+                </h1>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <Badge variant="secondary" className="bg-green-100 text-green-800 w-fit">
                     <Shield className="w-3 h-3 mr-1" />
                     {"guarantee included"}
                   </Badge>
-                  <span className="text-sm text-[#1479C9]">{"Disruption Protection • Instant Credit • Check-in"}</span>
+                  <span className="text-xs sm:text-sm text-[#1479C9]">
+                    {"Disruption Protection • Instant Credit • Check-in"}
+                  </span>
                 </div>
               </div>
 
               {/* Seat Legend */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold mb-3">Seat Types</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-semibold mb-2 sm:mb-3 text-sm sm:text-base">Seat Types</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 text-xs sm:text-sm">
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-[#1479C9] rounded"></div>
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 bg-[#1479C9] rounded flex-shrink-0"></div>
                     <span>Business ($150)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-green-500 rounded"></div>
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded flex-shrink-0"></div>
                     <span>Premium ($45–75)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-gray-200 rounded"></div>
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gray-200 rounded flex-shrink-0"></div>
                     <span>Economy ($15)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-gray-400 rounded"></div>
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gray-400 rounded flex-shrink-0"></div>
                     <span>Occupied</span>
                   </div>
                 </div>
@@ -276,22 +279,21 @@ export default function SeatSelection({ params }: PageProps) {
               </div>
 
               {/* Flight Tabs */}
-              <div className="mb-6">
-                <div className="flex border-b">
+              <div className="mb-4 sm:mb-6">
+                <div className="flex flex-col sm:flex-row border-b overflow-x-auto">
                   {flights.map((flight) => {
                     const selection = flightSelections.find((fs) => fs.flightId === flight.id)
                     return (
                       <button
                         key={flight.id}
                         onClick={() => setActiveFlightTab(flight.id)}
-                        className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                          activeFlightTab === flight.id
-                            ? "border-[#1479C9] text-[#1479C9]"
-                            : "border-transparent text-gray-500 hover:text-gray-700"
-                        }`}
+                        className={`px-3 sm:px-6 py-3 font-medium text-sm border-b-2 transition-colors flex-shrink-0 ${activeFlightTab === flight.id
+                          ? "border-[#1479C9] text-[#1479C9]"
+                          : "border-transparent text-gray-500 hover:text-gray-700"
+                          }`}
                       >
                         <div className="text-left">
-                          <div className="font-semibold">{flight.route}</div>
+                          <div className="font-semibold text-sm sm:text-base">{flight.route}</div>
                           <div className="text-xs text-gray-500">
                             {flight.date} • {flight.time}
                           </div>
@@ -320,14 +322,14 @@ export default function SeatSelection({ params }: PageProps) {
                 if (!activeFlight) return null
                 return (
                   <>
-                    <div className="flex justify-between items-center mb-4">
-                      <h2 className="text-xl font-semibold">{activeFlight.route}</h2>
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0 mb-4">
+                      <h2 className="text-lg sm:text-xl font-semibold">{activeFlight.route}</h2>
                       {activeFlight.hasSeatSelection && activeSelection?.seatId && (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleCancelSeat(activeFlightTab)}
-                          className="text-red-600 border-red-200 hover:bg-red-50"
+                          className="text-red-600 border-red-200 hover:bg-red-50 w-fit"
                         >
                           Cancel Selection
                         </Button>
@@ -337,35 +339,35 @@ export default function SeatSelection({ params }: PageProps) {
                     {activeFlight.hasSeatSelection ? (
                       <div className="relative">
                         <div className="flex justify-center mb-4">
-                          <Plane className="w-8 h-8 text-[#1479C9]" />
+                          <Plane className="w-6 h-6 sm:w-8 sm:h-8 text-[#1479C9]" />
                         </div>
 
-                        <div className="max-h-96 overflow-y-auto border rounded-lg p-4 bg-gradient-to-b from-blue-50 to-white">
-                          <div className="space-y-2">
+                        <div className="max-h-64 sm:max-h-80 lg:max-h-96 overflow-y-auto border rounded-lg p-2 sm:p-4 bg-gradient-to-b from-blue-50 to-white">
+                          <div className="space-y-1 sm:space-y-2">
                             {Array.from({ length: 30 }, (_, rowIndex) => {
                               const rowNumber = rowIndex + 1
                               const rowSeats = activeFlight.seats.filter((seat) => seat.row === rowNumber)
                               const isExitRow = hasEmergencyExit(rowNumber)
                               return (
                                 <div key={rowNumber} className="flex items-center justify-center gap-1">
-                                  <span className="w-6 text-xs text-gray-500 text-center flex items-center justify-center">
+                                  <span className="w-4 sm:w-6 text-xs text-gray-500 text-center flex items-center justify-center">
                                     {rowNumber}
                                     {isExitRow && <span className="text-red-500 ml-0.5">*</span>}
                                   </span>
 
                                   {/* Left side seats (A, B, C) */}
-                                  <div className="flex gap-1">
+                                  <div className="flex gap-0.5 sm:gap-1">
                                     {rowSeats.slice(0, 3).map((seat) => (
                                       <button
                                         key={seat.id}
                                         onClick={() => handleSeatSelect(seat.id)}
                                         disabled={seat.status === "occupied"}
-                                        className={`w-6 h-6 rounded text-xs font-medium transition-colors ${getSeatColor(
+                                        className={`w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 rounded text-xs font-medium transition-colors ${getSeatColor(
                                           seat,
-                                        )} ${seat.status === "occupied" ? "cursor-not-allowed" : "cursor-pointer"}`}
-                                        title={`Seat ${seat.id} - ${seat.type} $${seat.price}${
-                                          isExitRow ? " (Emergency Exit)" : ""
-                                        }`}
+                                        )} ${seat.status === "occupied" ? "cursor-not-allowed" : "cursor-pointer"} 
+                                        touch-manipulation active:scale-95`}
+                                        title={`Seat ${seat.id} - ${seat.type} $${seat.price}${isExitRow ? " (Emergency Exit)" : ""
+                                          }`}
                                       >
                                         {seat.letter}
                                       </button>
@@ -373,23 +375,23 @@ export default function SeatSelection({ params }: PageProps) {
                                   </div>
 
                                   {/* Aisle */}
-                                  <div className="w-4 flex items-center justify-center">
+                                  <div className="w-3 sm:w-4 flex items-center justify-center">
                                     {isExitRow && <span className="text-xs text-red-500 font-bold">*</span>}
                                   </div>
 
                                   {/* Right side seats (D, E, F) */}
-                                  <div className="flex gap-1">
+                                  <div className="flex gap-0.5 sm:gap-1">
                                     {rowSeats.slice(3, 6).map((seat) => (
                                       <button
                                         key={seat.id}
                                         onClick={() => handleSeatSelect(seat.id)}
                                         disabled={seat.status === "occupied"}
-                                        className={`w-6 h-6 rounded text-xs font-medium transition-colors ${getSeatColor(
+                                        className={`w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 rounded text-xs font-medium transition-colors ${getSeatColor(
                                           seat,
-                                        )} ${seat.status === "occupied" ? "cursor-not-allowed" : "cursor-pointer"}`}
-                                        title={`Seat ${seat.id} - ${seat.type} $${seat.price}${
-                                          isExitRow ? " (Emergency Exit)" : ""
-                                        }`}
+                                        )} ${seat.status === "occupied" ? "cursor-not-allowed" : "cursor-pointer"}
+                                        touch-manipulation active:scale-95`}
+                                        title={`Seat ${seat.id} - ${seat.type} $${seat.price}${isExitRow ? " (Emergency Exit)" : ""
+                                          }`}
                                       >
                                         {seat.letter}
                                       </button>
@@ -403,7 +405,7 @@ export default function SeatSelection({ params }: PageProps) {
 
                         {/* Note about skipping */}
                         <div className="mt-3 text-xs text-gray-600">
-                          Prefer not to pick a paid seat? Continue without choosing and we’ll assign a random seat at no
+                          Prefer not to pick a paid seat? Continue without choosing and we'll assign a random seat at no
                           extra cost.
                         </div>
                       </div>
@@ -419,13 +421,13 @@ export default function SeatSelection({ params }: PageProps) {
                       (() => {
                         const selectedSeatData = activeFlight.seats.find((s) => s.id === activeSelection.seatId)
                         return (
-                          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h4 className="font-semibold text-green-800">
+                          <div className="mt-4 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0">
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-green-800 text-sm sm:text-base">
                                   {activeFlight.route} - Seat {activeSelection.seatId}
                                 </h4>
-                                <p className="text-sm text-green-700">
+                                <p className="text-xs sm:text-sm text-green-700">
                                   {(selectedSeatData?.type.charAt(0).toUpperCase() ?? "") +
                                     (selectedSeatData?.type.slice(1) ?? "")}{" "}
                                   {"class"}{" "}
@@ -439,7 +441,7 @@ export default function SeatSelection({ params }: PageProps) {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleCancelSeat(activeFlightTab)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 w-fit"
                               >
                                 Cancel
                               </Button>
@@ -454,11 +456,11 @@ export default function SeatSelection({ params }: PageProps) {
           </div>
 
           {/* Price Summary */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6 order-1 xl:order-2">
             <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-4">Price Summary</h3>
-                <div className="space-y-3 text-sm">
+              <CardContent className="p-4 sm:p-6">
+                <h3 className="font-semibold mb-3 sm:mb-4 text-base sm:text-lg">Price Summary</h3>
+                <div className="space-y-2 sm:space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span>1x Adult</span>
                     <span>$275</span>
@@ -491,10 +493,10 @@ export default function SeatSelection({ params }: PageProps) {
                     if (price > 0) {
                       return (
                         <div key={selection.flightId} className="flex justify-between text-[#EF3D23]">
-                          <span>
+                          <span className="break-words">
                             Seat {selection.seatId} ({flight?.route})
                           </span>
-                          <span>+${price}</span>
+                          <span className="flex-shrink-0">+${price}</span>
                         </div>
                       )
                     }
@@ -502,7 +504,7 @@ export default function SeatSelection({ params }: PageProps) {
                   })}
 
                   <hr />
-                  <div className="flex justify-between font-bold text-lg">
+                  <div className="flex justify-between font-bold text-base sm:text-lg">
                     <span>Total (USD)</span>
                     <span>
                       $
@@ -519,37 +521,42 @@ export default function SeatSelection({ params }: PageProps) {
                     </span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-3">
+                <p className="text-xs text-gray-500 mt-3 leading-relaxed">
                   {
                     "Includes all taxes, fees, surcharges, and Kiwi.com service fees. Kiwi.com service fees are calculated "
                   }
                   {"per passenger and are not refundable."}
                 </p>
-                <button className="text-sm text-[#1479C9] underline mt-2">View price breakdown</button>
+                <button className="text-sm text-[#1479C9] underline mt-2 hover:no-underline">
+                  View price breakdown
+                </button>
               </CardContent>
             </Card>
           </div>
         </div>
 
         {/* Navigation */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-between items-center mt-8 pt-6 border-t">
-          <Button variant="outline" className="flex items-center gap-2 bg-transparent w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center mt-6 sm:mt-8 pt-4 sm:pt-6 border-t">
+          <Button
+            variant="outline"
+            className="flex items-center justify-center gap-2 bg-transparent order-3 sm:order-1"
+          >
             <ChevronLeft className="w-4 h-4" />
             Back
           </Button>
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-3 order-1 sm:order-2">
             {/* Continue without choosing seats (random, no cost) */}
             <Button
               variant="outline"
-              className="w-full sm:w-auto bg-transparent"
+              className="bg-transparent text-sm sm:text-base px-3 sm:px-4"
               onClick={handleContinueWithoutSeats}
-              title="We’ll assign a random seat at no extra cost"
+              title="We'll assign a random seat at no extra cost"
             >
               Continue without choosing seats
             </Button>
             <Button
               onClick={() => n.push("/Booking/1")}
-              className="bg-[#1479C9] hover:bg-[#1479C9]/90 text-white flex items-center gap-2 w-full sm:w-auto"
+              className="bg-[#1479C9] hover:bg-[#1479C9]/90 text-white flex items-center justify-center gap-2 text-sm sm:text-base px-4 sm:px-6"
               disabled={isContinueDisabled}
             >
               Continue

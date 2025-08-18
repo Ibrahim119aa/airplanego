@@ -87,7 +87,7 @@ const PopularFlight = () => {
                             </p>
                         </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-x-10 gap-y-5">
+                    <div className="grid lg:grid-cols-3 md:grid-cols-2 grid-cols-1 gap-x-10 gap-y-5">
 
                         {
                             popularflight &&

@@ -29,7 +29,7 @@ export default function Component() {
       <ScatteredLetters />
       <Banner />
       <PopularFlight />
-      
+
 
 
     </div>

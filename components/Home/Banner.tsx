@@ -265,16 +265,15 @@ const Banner = () => {
           key={day}
           className={`h-16 flex flex-col items-center justify-center cursor-pointer rounded-lg transition-all duration-200 relative border-2
             ${isPastDate ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""}
-            ${
-              isStartDate
-                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-600 shadow-lg transform scale-105"
-                : isEndDate
-                  ? "bg-gradient-to-r from-green-500 to-green-600 text-white border-green-600 shadow-lg transform scale-105"
-                  : inRange
-                    ? "bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 text-gray-800"
-                    : isPastDate
-                      ? "" // No hover effect for past dates
-                      : "hover:bg-gray-50 border-transparent hover:border-gray-200 hover:shadow-md"
+            ${isStartDate
+              ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-600 shadow-lg transform scale-105"
+              : isEndDate
+                ? "bg-gradient-to-r from-green-500 to-green-600 text-white border-green-600 shadow-lg transform scale-105"
+                : inRange
+                  ? "bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 text-gray-800"
+                  : isPastDate
+                    ? "" // No hover effect for past dates
+                    : "hover:bg-gray-50 border-transparent hover:border-gray-200 hover:shadow-md"
             }
             ${isToday && !isSelected && !isPastDate ? "border-blue-400 bg-blue-50" : ""}
           `}
@@ -358,8 +357,8 @@ const Banner = () => {
     toQuery === "" ? cities : cities.filter((city) => city.toLowerCase().includes(toQuery.toLowerCase()))
 
   return (
-    <div className="h-[50rem] bg-gradient-to-br from-[#1479C9] via-[#0B2F5C] to-[#EF3D23] relative overflow-hidden">
-      <main className=" relative z-10 max-w-7xl  mx-auto  sm:px-6 lg:px-8 pt-16 pb-24">
+    <div className=" bg-gradient-to-br from-[#1479C9] via-[#0B2F5C] to-[#EF3D23] relative overflow-hidden">
+      <main className=" relative z-10 max-w-7xl  mx-auto  px-6 lg:px-8 pt-16 pb-24">
         {/* Hero Text */}
         <div className="text-center mb-12">
           <h1
@@ -381,9 +380,9 @@ const Banner = () => {
         <Card data-aos="zoom-in" data-aos-duration="1000" className=" max-w-4xl relative mx-auto shadow-2xl">
           <CardContent className="p-6">
             {/* Trip Options */}
-            <div className="flex flex-wrap items-center gap-4 mb-6">
+            <div className="flex lg:flex-row md:flex-row flex-col flex-wrap lg:items-center md:items-center gap-4 lg:mb-6 md:mb-4 mb-3">
               <Select value={tripType} onValueChange={handleTripTypeChange}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="lg:w-32">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -392,7 +391,7 @@ const Banner = () => {
                 </SelectContent>
               </Select>
               <Select value={cabinClass} onValueChange={setCabinClass}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="lg:w-32">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -405,7 +404,7 @@ const Banner = () => {
               {/* Enhanced Passenger Selector */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-44 justify-between bg-transparent">
+                  <Button variant="outline" className="lg:w-44 justify-between bg-transparent">
                     <div className="flex items-center">
                       <Users className="w-4 h-4 mr-2 text-blue-600" />
                       {getPassengerSummary()}
@@ -512,7 +511,7 @@ const Banner = () => {
               {/* Enhanced Baggage Selector */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-32 justify-between bg-transparent">
+                  <Button variant="outline" className="lg:w-32 justify-between bg-transparent">
                     <div className="flex items-center">
                       <Luggage className="w-4 h-4 mr-2 text-orange-600" />
                       {getBagageSummary()}
@@ -586,7 +585,7 @@ const Banner = () => {
               </Popover>
             </div>
             {/* Location and Date Inputs */}
-            <div className="grid grid-cols-1 lg:grid-cols-10 gap-2 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-10 lg:gap-2 md:gap-4 gap-4 mb-6">
               {/* From Location */}
               <div className="lg:col-span-3">
                 <div className="relative">
@@ -618,8 +617,7 @@ const Banner = () => {
                             key={`from-${city}`}
                             value={city}
                             className={({ active }) =>
-                              `flex justify-between items-center px-4 py-2 cursor-pointer ${
-                                active ? "bg-green-100" : "hover:bg-gray-100"
+                              `flex justify-between items-center px-4 py-2 cursor-pointer ${active ? "bg-green-100" : "hover:bg-gray-100"
                               }`
                             }
                           >
@@ -636,10 +634,10 @@ const Banner = () => {
                 variant="ghost"
                 size="sm"
                 onClick={swapLocations}
-                className="p-2 w-7 h-6  absolute top-[48%] left-[29.3%] z-50 hover:bg-sky-50 rounded-full border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all duration-200"
+                className="p-2 lg:w-7 lg:h-6 md:w-5 md:h-4 w-7 h-6  absolute lg:top-[48%] top-[52%] left-[47%] lg:left-[29.3%] z-50 hover:bg-sky-50 rounded-full border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all duration-200"
                 title="Swap destinations"
               >
-                <ArrowLeftRight className="w-4 h-4 text-[#1479C9]" />
+                <ArrowLeftRight className="lg:w-4 lg:h-4 w-4 h-4 text-[#1479C9]" />
               </Button>
               {/* To Location */}
               <div className="lg:col-span-3">
@@ -672,8 +670,7 @@ const Banner = () => {
                             key={`to-${city}`}
                             value={city}
                             className={({ active }) =>
-                              `flex justify-between items-center px-4 py-2 cursor-pointer ${
-                                active ? "bg-orange-100" : "hover:bg-gray-100"
+                              `flex justify-between items-center px-4 py-2 cursor-pointer ${active ? "bg-orange-100" : "hover:bg-gray-100"
                               }`
                             }
                           >
