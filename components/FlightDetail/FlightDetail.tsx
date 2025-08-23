@@ -238,7 +238,7 @@ export default function FlightBookingForm() {
     setShowErrors(false)
     setGlobalError(null)
     console.log("Form is valid, proceeding...")
-    // router.push("/next-step")
+    router.push("/flight/seat/1");
   }
 
   const renderPassengerForm = (passenger: Passenger, index: number) => {
@@ -580,51 +580,6 @@ export default function FlightBookingForm() {
               )}
             </div>
 
-            <div>
-              <Label>Travel insurance</Label>
-              <RadioGroup
-                value={passenger.travelInsurance}
-                onValueChange={(value: "plus" | "basic" | "none") =>
-                  updatePassenger(passenger.id, "travelInsurance", value)
-                }
-                className="mt-2 space-y-3"
-              >
-                <div className="flex items-center space-x-2 p-3 border rounded-md">
-                  <RadioGroupItem value="plus" id={`plus-${passenger.id}`} />
-                  <div className="flex-1">
-                    <Label htmlFor={`plus-${passenger.id}`} className="font-medium text-sm sm:text-base">
-                      Travel Insurance Plus
-                    </Label>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      Comprehensive coverage including medical, trip cancellation, and baggage protection
-                    </p>
-                    <p className="text-sm font-semibold text-green-600 mt-1">$29.99</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2 p-3 border rounded-md">
-                  <RadioGroupItem value="basic" id={`basic-${passenger.id}`} />
-                  <div className="flex-1">
-                    <Label htmlFor={`basic-${passenger.id}`} className="font-medium text-sm sm:text-base">
-                      Basic Travel Insurance
-                    </Label>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      Essential coverage for medical emergencies and trip interruption
-                    </p>
-                    <p className="text-sm font-semibold text-green-600 mt-1">$14.99</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2 p-3 border rounded-md">
-                  <RadioGroupItem value="none" id={`none-${passenger.id}`} />
-                  <div className="flex-1">
-                    <Label htmlFor={`none-${passenger.id}`} className="font-medium text-sm sm:text-base">
-                      No insurance
-                    </Label>
-                    <p className="text-xs sm:text-sm text-muted-foreground">Travel at your own risk</p>
-                    <p className="text-sm font-semibold text-green-600 mt-1">$0.00</p>
-                  </div>
-                </div>
-              </RadioGroup>
-            </div>
           </CardContent>
         </Card>
       </div>

@@ -29,12 +29,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${roboto.variable} ${poppins.variable}`}>
-      {/* <Header /> */}
+      <Header />
       <body>
 
         {children}
       </body>
-      {/* <Footer /> */}
+      <Footer />
 
     </html>
   );

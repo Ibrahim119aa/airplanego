@@ -149,7 +149,7 @@ body {
   }
 
   .Circle {
-    @apply rounded-[50%] w-12 opacity-95 h-12 bg-[#1479C9] flex justify-center items-center;
+    @apply -z-10 rounded-[50%] w-12 opacity-95 h-12 bg-[#1479C9] flex justify-center items-center;
 
   }
 
