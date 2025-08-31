@@ -241,36 +241,6 @@ export default function PaymentConfirmation() {
 
                   <Separator />
 
-                  {/* Kiwi.com Guarantee */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-                    <div className="lg:col-span-2 space-y-2">
-                      <h4 className="font-medium text-gray-700">Kiwi.com Guarantee</h4>
-                      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm text-gray-600">
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                          <span>Automatic check-in</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                          <span>Disruption Protection</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                          <span>Live Boarding Pass</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                          <span>Premium services</span>
-                        </li>
-                      </ul>
-                    </div>
-                    <div className="flex justify-start lg:justify-end">
-                      <span className="text-sm text-gray-500">Included</span>
-                    </div>
-                  </div>
-
-                  <Separator />
-
                   {/* Baggage */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
                     <div className="lg:col-span-2 space-y-2">

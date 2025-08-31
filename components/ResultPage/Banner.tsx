@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Combobox } from "@headlessui/react"
 import { ChevronUpDownIcon } from "@heroicons/react/20/solid"
 import { Button } from "@/components/ui/button"
@@ -9,10 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { User, Calendar, X, ChevronRight, ChevronLeft, ArrowLeftRight, Luggage, Users, Plus, Minus } from "lucide-react"
+import {
+  User,
+  Calendar,
+  X,
+  ChevronRight,
+  ChevronLeft,
+  ArrowLeftRight,
+  Luggage,
+  Users,
+  Plus,
+  Minus,
+  Search,
+} from "lucide-react"
 import { useRouter } from "next/navigation"
-const TopBanner = React.lazy(() => import("@/components/General/TopBanner"));
-
 
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 const months = [
@@ -93,6 +103,7 @@ const Banner = () => {
   const [toQuery, setToQuery] = useState("")
   const calendarRef = useRef<HTMLDivElement>(null)
   const n = useRouter()
+  const [showMobileForm, setShowMobileForm] = useState(false)
 
   const handleSearch = () => {
     n.push("/flight")
@@ -360,223 +371,244 @@ const Banner = () => {
 
   return (
     <div>
-      <TopBanner />
       <div className="  relative overflow-hidden">
         <main className=" relative z-10 max-w-8xl    sm:px-6 ">
-          {/* Hero Text */}
+          <div className="block md:hidden mb-4">
+            {!showMobileForm && (
+              <Button
+                onClick={() => setShowMobileForm(true)}
+                className="w-full bg-[#1479C9] hover:bg-sky-600 text-white font-semibold py-4 text-lg rounded-lg shadow-lg"
+              >
+                <Search className="w-5 h-5 mr-2" />
+                Search Flights
+              </Button>
+            )}
+          </div>
 
-          {/* Search Form */}
-          <Card data-aos="zoom-in" data-aos-duration="1000" className=" max-w-8xl relative  shadow-2xl">
-            <CardContent className="p-6">
-              {/* Trip Options */}
-              <div className="flex flex-wrap items-center gap-4 mb-6">
-                <Select value={tripType} onValueChange={handleTripTypeChange}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="return">Return</SelectItem>
-                    <SelectItem value="oneway">One way</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={cabinClass} onValueChange={setCabinClass}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="economy">Economy</SelectItem>
-                    <SelectItem value="premium">Premium</SelectItem>
-                    <SelectItem value="business">Business</SelectItem>
-                    <SelectItem value="first">First</SelectItem>
-                  </SelectContent>
-                </Select>
-                {/* Enhanced Passenger Selector */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-44 justify-between bg-transparent">
-                      <div className="flex items-center">
-                        <Users className="w-4 h-4 mr-2 text-blue-600" />
-                        {getPassengerSummary()}
-                      </div>
-                      <ChevronUpDownIcon className="h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 p-4">
-                    <div className="space-y-4">
-                      <h4 className="font-medium text-sm text-gray-900">Passengers</h4>
-                      {/* Adults */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <User className="w-4 h-4 text-gray-600" />
-                          <div>
-                            <div className="text-sm font-medium">Adults</div>
-                            <div className="text-xs text-gray-500">Over 11</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0 bg-transparent"
-                            onClick={() => updatePassengers("adults", "decrement")}
-                            disabled={passengers.adults <= 1}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-8 text-center text-sm">{passengers.adults}</span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0 bg-transparent"
-                            onClick={() => updatePassengers("adults", "increment")}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                      {/* Children */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <User className="w-4 h-4 text-gray-600" />
-                          <div>
-                            <div className="text-sm font-medium">Children</div>
-                            <div className="text-xs text-gray-500">2 - 11</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0 bg-transparent"
-                            onClick={() => updatePassengers("children", "decrement")}
-                            disabled={passengers.children <= 0}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-8 text-center text-sm">{passengers.children}</span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0 bg-transparent"
-                            onClick={() => updatePassengers("children", "increment")}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                      {/* Infants */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <User className="w-4 h-4 text-gray-600" />
-                          <div>
-                            <div className="text-sm font-medium">Infants</div>
-                            <div className="text-xs text-gray-500">Under 2</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0 bg-transparent"
-                            onClick={() => updatePassengers("infants", "decrement")}
-                            disabled={passengers.infants <= 0}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-8 text-center text-sm">{passengers.infants}</span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0 bg-transparent"
-                            onClick={() => updatePassengers("infants", "increment")}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                {/* Enhanced Baggage Selector */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-32 justify-between bg-transparent">
-                      <div className="flex items-center">
-                        <Luggage className="w-4 h-4 mr-2 text-orange-600" />
-                        {getBagageSummary()}
-                      </div>
-                      <ChevronUpDownIcon className="h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 p-4">
-                    <div className="space-y-4">
-                      <h4 className="font-medium text-sm text-gray-900">Bags</h4>
-                      {/* Cabin Baggage */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Luggage className="w-4 h-4 text-gray-600" />
-                          <div>
-                            <div className="text-sm font-medium">Cabin baggage</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0 bg-transparent"
-                            onClick={() => updateBaggage("cabin", "decrement")}
-                            disabled={baggage.cabin <= 0}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-8 text-center text-sm">{baggage.cabin}</span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0 bg-transparent"
-                            onClick={() => updateBaggage("cabin", "increment")}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                      {/* Checked Baggage */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Luggage className="w-4 h-4 text-gray-600" />
-                          <div>
-                            <div className="text-sm font-medium">Checked baggage</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0 bg-transparent"
-                            onClick={() => updateBaggage("checked", "decrement")}
-                            disabled={baggage.checked <= 0}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-8 text-center text-sm">{baggage.checked}</span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0 bg-transparent"
-                            onClick={() => updateBaggage("checked", "increment")}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+          <Card
+            data-aos="zoom-in"
+            data-aos-duration="1000"
+            className={`max-w-8xl relative shadow-2xl transition-all duration-300 ${showMobileForm ? "block" : "hidden md:block"
+              }`}
+          >
+            <CardContent className="p-4 md:p-6">
+              <div className="block md:hidden mb-4">
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowMobileForm(false)}
+                  className="w-full justify-center text-gray-600"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Close
+                </Button>
               </div>
-              {/* Location and Date Inputs */}
-              <div className="grid grid-cols-1 lg:grid-cols-10 gap-2 mb-6">
-                {/* From Location */}
-                <div className="lg:col-span-3">
+
+              <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 sm:gap-4 mb-6">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+                  <Select value={tripType} onValueChange={handleTripTypeChange}>
+                    <SelectTrigger className="w-full sm:w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="return">Return</SelectItem>
+                      <SelectItem value="oneway">One way</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={cabinClass} onValueChange={setCabinClass}>
+                    <SelectTrigger className="w-full sm:w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="economy">Economy</SelectItem>
+                      <SelectItem value="premium">Premium</SelectItem>
+                      <SelectItem value="business">Business</SelectItem>
+                      <SelectItem value="first">First</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full sm:w-44 justify-between bg-transparent">
+                        <div className="flex items-center">
+                          <Users className="w-4 h-4 mr-2 text-blue-600" />
+                          {getPassengerSummary()}
+                        </div>
+                        <ChevronUpDownIcon className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-4">
+                      <div className="space-y-4">
+                        <h4 className="font-medium text-sm text-gray-900">Passengers</h4>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <User className="w-4 h-4 text-gray-600" />
+                            <div>
+                              <div className="text-sm font-medium">Adults</div>
+                              <div className="text-xs text-gray-500">Over 11</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 bg-transparent"
+                              onClick={() => updatePassengers("adults", "decrement")}
+                              disabled={passengers.adults <= 1}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-8 text-center text-sm">{passengers.adults}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 bg-transparent"
+                              onClick={() => updatePassengers("adults", "increment")}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <User className="w-4 h-4 text-gray-600" />
+                            <div>
+                              <div className="text-sm font-medium">Children</div>
+                              <div className="text-xs text-gray-500">2 - 11</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 bg-transparent"
+                              onClick={() => updatePassengers("children", "decrement")}
+                              disabled={passengers.children <= 0}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-8 text-center text-sm">{passengers.children}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 bg-transparent"
+                              onClick={() => updatePassengers("children", "increment")}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <User className="w-4 h-4 text-gray-600" />
+                            <div>
+                              <div className="text-sm font-medium">Infants</div>
+                              <div className="text-xs text-gray-500">Under 2</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 bg-transparent"
+                              onClick={() => updatePassengers("infants", "decrement")}
+                              disabled={passengers.infants <= 0}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-8 text-center text-sm">{passengers.infants}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 bg-transparent"
+                              onClick={() => updatePassengers("infants", "increment")}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full sm:w-32 justify-between bg-transparent">
+                        <div className="flex items-center">
+                          <Luggage className="w-4 h-4 mr-2 text-orange-600" />
+                          {getBagageSummary()}
+                        </div>
+                        <ChevronUpDownIcon className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-4">
+                      <div className="space-y-4">
+                        <h4 className="font-medium text-sm text-gray-900">Bags</h4>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Luggage className="w-4 h-4 text-gray-600" />
+                            <div>
+                              <div className="text-sm font-medium">Cabin baggage</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 bg-transparent"
+                              onClick={() => updateBaggage("cabin", "decrement")}
+                              disabled={baggage.cabin <= 0}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-8 text-center text-sm">{baggage.cabin}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 bg-transparent"
+                              onClick={() => updateBaggage("cabin", "increment")}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Luggage className="w-4 h-4 text-gray-600" />
+                            <div>
+                              <div className="text-sm font-medium">Checked baggage</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 bg-transparent"
+                              onClick={() => updateBaggage("checked", "decrement")}
+                              disabled={baggage.checked <= 0}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-8 text-center text-sm">{baggage.checked}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 bg-transparent"
+                              onClick={() => updateBaggage("checked", "increment")}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              <div className="flex flex-col lg:grid lg:grid-cols-10 gap-3 lg:gap-2 mb-6">
+                <div className="lg:col-span-3 relative">
                   <div className="relative">
                     <Combobox
                       value={fromLocation}
@@ -586,10 +618,9 @@ const Banner = () => {
                       }}
                     >
                       <div className="relative">
-                        {/* Input Box with Green Background for "From" */}
                         <div className="relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-sm border bg-green-50 border-green-200 text-popover-foreground shadow-sm">
                           <Combobox.Input
-                            className="w-full placeholder-[#059669] bg-green-50 px-4 py-2 text-sm leading-5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-300"
+                            className="w-full placeholder-[#059669] bg-green-50 px-4 py-3 md:py-2 text-sm leading-5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-300"
                             placeholder="From"
                             onChange={(e) => setFromQuery(e.target.value)}
                             displayValue={(city: string) => city}
@@ -598,7 +629,6 @@ const Banner = () => {
                             <ChevronUpDownIcon className="h-5 w-5 text-green-600" />
                           </Combobox.Button>
                         </div>
-                        {/* Dropdown Panel */}
                         <Combobox.Options className="absolute mt-2 w-full z-10 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto text-sm text-gray-900">
                           <div className="px-4 pt-3 pb-1 text-xs font-medium text-gray-500 uppercase">Suggestions</div>
                           {filteredFromCities.map((city) => (
@@ -618,18 +648,19 @@ const Banner = () => {
                       </div>
                     </Combobox>
                   </div>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={swapLocations}
+                    className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 lg:top-[48%] lg:left-[102%] lg:transform lg:-translate-y-1/2 lg:translate-x-0 p-2 w-8 h-8 z-50 hover:bg-sky-50 rounded-full border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all duration-200"
+                    title="Swap destinations"
+                  >
+                    <ArrowLeftRight className="w-4 h-4 text-[#1479C9] rotate-90 lg:rotate-0" />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={swapLocations}
-                  className="p-2 w-7 h-6  absolute top-[48%] left-[29.3%] z-50 hover:bg-sky-50 rounded-full border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all duration-200"
-                  title="Swap destinations"
-                >
-                  <ArrowLeftRight className="w-4 h-4 text-[#1479C9]" />
-                </Button>
-                {/* To Location */}
-                <div className="lg:col-span-3">
+
+                <div className="lg:col-span-3 mt-4 lg:mt-0">
                   <div className="relative">
                     <Combobox
                       value={toLocation}
@@ -639,10 +670,9 @@ const Banner = () => {
                       }}
                     >
                       <div className="relative">
-                        {/* Input Box with Orange Background for "To" */}
                         <div className="relative z-10 max-h-96 min-w-[8rem] overflow-hidden rounded-sm border bg-orange-50 border-orange-200 text-popover-foreground shadow-sm">
                           <Combobox.Input
-                            className="w-full placeholder-[#ea580c] bg-orange-50 px-4 py-2 text-sm leading-5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-300"
+                            className="w-full placeholder-[#ea580c] bg-orange-50 px-4 py-3 md:py-2 text-sm leading-5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-300"
                             placeholder="To"
                             onChange={(e) => setToQuery(e.target.value)}
                             displayValue={(city: string) => city}
@@ -651,7 +681,6 @@ const Banner = () => {
                             <ChevronUpDownIcon className="h-5 w-5 text-orange-600" />
                           </Combobox.Button>
                         </div>
-                        {/* Dropdown Panel */}
                         <Combobox.Options className="absolute mt-2 w-full z-10 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto text-sm text-gray-900">
                           <div className="px-4 pt-3 pb-1 text-xs font-medium text-gray-500 uppercase">Suggestions</div>
                           {filteredToCities.map((city) => (
@@ -672,7 +701,7 @@ const Banner = () => {
                     </Combobox>
                   </div>
                 </div>
-                {/* Departure Date */}
+
                 <div className="lg:col-span-3">
                   <div>
                     <div className="space-y-2">
@@ -686,7 +715,7 @@ const Banner = () => {
                           readOnly
                           onClick={() => setShowCalender(!showCalender)}
                           placeholder={tripType === "oneway" ? "Departure Date" : "Departure to Arrival"}
-                          className="relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-sm border bg-popover text-popover-foreground shadow-sm cursor-pointer pl-10"
+                          className="relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-sm border bg-popover text-popover-foreground shadow-sm cursor-pointer pl-10 py-3 md:py-2"
                         />
                         <button
                           className="absolute right-3 top-1/2 transform -translate-y-1/2"
@@ -702,9 +731,8 @@ const Banner = () => {
                     {showCalender && (
                       <div
                         ref={calendarRef}
-                        className="space-y-4 absolute w-2/3 left-[21.5%] z-20 bg-white border border-gray-200 rounded-lg shadow-xl p-4"
+                        className="space-y-4 absolute w-full md:w-2/3 left-0 md:left-[21.5%] z-20 bg-white border border-gray-200 rounded-lg shadow-xl p-4"
                       >
-                        {/* Calendar Header */}
                         <div className="flex items-center justify-between">
                           <Button
                             variant="ghost"
@@ -721,7 +749,6 @@ const Banner = () => {
                             <ChevronRight className="h-4 w-4" />
                           </Button>
                         </div>
-                        {/* Days of Week Header */}
                         <div className="grid grid-cols-7 gap-1">
                           {daysOfWeek.map((day) => (
                             <div key={day} className="h-8 flex items-center justify-center">
@@ -729,9 +756,7 @@ const Banner = () => {
                             </div>
                           ))}
                         </div>
-                        {/* Calendar Grid */}
                         <div className="grid grid-cols-7 gap-1">{renderCalendarDays()}</div>
-                        {/* Helper text for trip type */}
                         <div className="text-xs text-gray-500 text-center p-2 bg-gray-50 rounded-md">
                           {tripType === "oneway" ? (
                             "Select your departure date (click again to deselect)"
@@ -751,7 +776,6 @@ const Banner = () => {
                             </div>
                           )}
                         </div>
-                        {/* Clear dates button */}
                         {(startDate || endDate) && (
                           <div className="flex justify-center">
                             <Button variant="outline" size="sm" onClick={clearDates} className="text-xs bg-transparent">
@@ -763,20 +787,21 @@ const Banner = () => {
                     )}
                   </div>
                 </div>
-                {/* Search Button */}
-                <div className="lg:col-span-1 flex self-center ">
+
+                <div className="lg:col-span-1 flex self-center w-full lg:w-auto">
                   <Button
                     onClick={handleSearch}
-                    className="w-full bg-[#1479C9] hover:bg-sky-600 text-white font-semibold py-3"
+                    className="w-full bg-[#1479C9] hover:bg-sky-600 text-white font-semibold py-4 lg:py-3 text-base lg:text-sm"
                   >
+                    <Search className="w-4 h-4 mr-2 lg:hidden" />
                     Search
                   </Button>
                 </div>
               </div>
-              {/* Booking.com Integration */}
-              <div className="flex items-end justify-end space-x-2">
+
+              <div className="flex items-center justify-center lg:justify-end space-x-2 mt-4 lg:mt-0">
                 <Checkbox id="accommodation" defaultChecked />
-                <label htmlFor="accommodation" className="text-sm text-gray-700">
+                <label htmlFor="accommodation" className="text-sm text-gray-700 text-center lg:text-left">
                   Check accommodation with <span className="text-blue-600 font-semibold">Booking.com</span>
                 </label>
               </div>
@@ -784,12 +809,8 @@ const Banner = () => {
           </Card>
         </main>
       </div>
-
     </div>
   )
 }
 
 export default Banner
-
-
-

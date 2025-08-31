@@ -713,7 +713,11 @@ const Banner = () => {
                   {showCalender && (
                     <div
                       ref={calendarRef}
-                      className="space-y-4 absolute w-2/3 left-[21.5%] z-20 bg-white border border-gray-200 rounded-lg shadow-xl p-4"
+                      className="space-y-4 absolute z-20 bg-white border border-gray-200 rounded-lg shadow-xl p-4
+                        w-[95vw] max-w-md left-1/2 transform -translate-x-1/2 top-full mt-2
+                        sm:w-[90vw] sm:max-w-lg
+                        md:w-[80vw] md:max-w-xl md:left-1/2 md:transform md:-translate-x-1/2
+                        lg:w-2/3 lg:left-[21.5%] lg:transform-none lg:-translate-x-0"
                     >
                       {/* Calendar Header */}
                       <div className="flex items-center justify-between">
@@ -799,6 +803,3 @@ const Banner = () => {
 }
 
 export default Banner
-
-
-

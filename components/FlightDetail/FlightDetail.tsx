@@ -31,7 +31,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import TopBanner from "@/components/General/TopBanner"
 
 interface Passenger {
   id: string
@@ -169,7 +168,27 @@ export default function FlightBookingForm() {
       ),
     )
   }
+  const calculateAge = (dateOfBirth: { day: string; month: string; year: string }) => {
+    if (!dateOfBirth.day || !dateOfBirth.month || !dateOfBirth.year) {
+      return null
+    }
 
+    const today = new Date()
+    const birthDate = new Date(
+      Number.parseInt(dateOfBirth.year),
+      Number.parseInt(dateOfBirth.month) - 1,
+      Number.parseInt(dateOfBirth.day),
+    )
+
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+
+    return age
+  }
   const validatePassengers = () => {
     const errors: string[] = []
 
@@ -185,6 +204,12 @@ export default function FlightBookingForm() {
         isEmpty(passenger.dateOfBirth.year)
       ) {
         errors.push(`Passenger ${passengerNumber}: Date of birth required`)
+      }
+      else {
+        const age = calculateAge(passenger.dateOfBirth)
+        if (age !== null && age < 16) {
+          errors.push(`Passenger ${passengerNumber}: Passengers under 16 years old cannot book tickets`)
+        }
       }
       if (isEmpty(passenger.passportNumber)) errors.push(`Passenger ${passengerNumber}: Passport number required`)
       if (
@@ -588,7 +613,6 @@ export default function FlightBookingForm() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <TopBanner />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-24">
         {/* Global validation alert */}
         {globalError && (
