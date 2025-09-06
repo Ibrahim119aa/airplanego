@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { AnimatePresence } from "framer-motion"
 import React from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -9,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
+import { AnimatePresence } from "framer-motion"
 import {
   Luggage,
   Briefcase,
@@ -237,6 +237,87 @@ export default function FlightSearch() {
             arrivalTime: "06:15",
             arrivalAirport: "LHR",
             totalDuration: "7h 30m",
+            stops: [],
+            date: "Sun, Nov 24",
+          }
+          : undefined,
+    },
+    {
+      id: 4,
+      basePrice: 234,
+      outbound: {
+        airline: "KLM",
+        time: "10:30",
+        airport: "AMS",
+        arrivalTime: "13:45",
+        arrivalAirport: "LHR",
+        totalDuration: "5h 15m",
+        stops: [],
+        date: "Tue, Nov 19",
+      },
+      inbound:
+        tripType === "round-trip"
+          ? {
+            airline: "KLM",
+            time: "15:20",
+            airport: "LHR",
+            arrivalTime: "20:35",
+            arrivalAirport: "AMS",
+            totalDuration: "5h 15m",
+            stops: [],
+            date: "Sun, Nov 24",
+          }
+          : undefined,
+    },
+    {
+      id: 5,
+      basePrice: 267,
+      outbound: {
+        airline: "Ryanair",
+        time: "07:45",
+        airport: "STN",
+        arrivalTime: "11:20",
+        arrivalAirport: "BCN",
+        totalDuration: "7h 35m",
+        stops: [{ airport: "MAD", duration: "1h 30m" }],
+        date: "Tue, Nov 19",
+      },
+      inbound:
+        tripType === "round-trip"
+          ? {
+            airline: "Ryanair",
+            time: "16:10",
+            airport: "BCN",
+            arrivalTime: "21:45",
+            arrivalAirport: "STN",
+            totalDuration: "7h 35m",
+            stops: [{ airport: "MAD", duration: "1h 30m" }],
+            date: "Sun, Nov 24",
+          }
+          : undefined,
+    },
+    {
+      id: 6,
+      basePrice: 245,
+      outbound: {
+        airline: "EasyJet",
+        time: "13:15",
+        airport: "LGW",
+        arrivalTime: "16:50",
+        arrivalAirport: "CDG",
+        totalDuration: "4h 35m",
+        stops: [],
+        date: "Tue, Nov 19",
+      },
+      inbound:
+        tripType === "round-trip"
+          ? {
+            airline: "EasyJet",
+            time: "18:30",
+            airport: "CDG",
+            arrivalTime: "22:05",
+            arrivalAirport: "LGW",
+            totalDuration: "4h 35m",
             stops: [],
             date: "Sun, Nov 24",
           }
@@ -583,16 +664,13 @@ export default function FlightSearch() {
                   <span className="font-semibold text-xs sm:text-sm">{option.label}</span>
                   <span className="text-xs font-medium mt-1 ">€{option.price}</span>
                 </Button>
-
               ))}
             </div>
           </ScrollArea>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4">
-          <div className="flex-1"
-
-          />
+          <div className="flex-1" />
           <div className="flex items-center gap-2 justify-center sm:justify-end">
             <Button
               variant="ghost"
@@ -735,11 +813,10 @@ export default function FlightSearch() {
                 <p className="text-sm mt-2">Try adjusting your filters to see more options.</p>
               </div>
             )}
-
-            <AnimatePresence>
-              {isOpen && <FlightDetailModalComponent onOpenChange={setIsOpen} open={isOpen} />}
-            </AnimatePresence>
           </div>
+          <AnimatePresence>
+            {isOpen && <FlightDetailModalComponent onOpenChange={setIsOpen} open={isOpen} />}
+          </AnimatePresence>
         </ScrollArea>
       </div>
     </div>

@@ -653,7 +653,7 @@ const Banner = () => {
                     variant="ghost"
                     size="sm"
                     onClick={swapLocations}
-                    className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 lg:top-[48%] lg:left-[102%] lg:transform lg:-translate-y-1/2 lg:translate-x-0 p-2 w-8 h-8 z-50 hover:bg-sky-50 rounded-full border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all duration-200"
+                    className="absolute -bottom-2 left-[1/2] transform -translate-x-1/2 lg:top-[48%] lg:left-[97%] lg:transform lg:-translate-y-1/2 lg:translate-x-0 p-2 w-8 h-8 z-50 hover:bg-sky-50 rounded-full border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all duration-200"
                     title="Swap destinations"
                   >
                     <ArrowLeftRight className="w-4 h-4 text-[#1479C9] rotate-90 lg:rotate-0" />
