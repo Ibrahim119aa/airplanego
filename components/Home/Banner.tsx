@@ -12,6 +12,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { User, Calendar, X, ChevronRight, ChevronLeft, ArrowLeftRight, Luggage, Users, Plus, Minus } from "lucide-react"
 import { useRouter } from "next/navigation"
 
+
+
+import { SignJWT, jwtVerify } from "jose";
+
+const SECRET_KEY = new TextEncoder().encode("your-secret-key");
 const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 const months = [
   "January",
@@ -68,8 +73,14 @@ const Banner = () => {
   const todayMonth = todayDate.getMonth() // 0-indexed
   const todayYear = todayDate.getFullYear()
 
-  const [fromLocation, setFromLocation] = useState<string | null>("Karachi, Pakistan")
-  const [toLocation, setToLocation] = useState<string | null>("Dubai, UAE")
+  const [fromLocation, setFromLocation] = useState<{ name: string; code: string } | null>({
+    name: "Karachi, Pakistan",
+    code: "khi",
+  })
+  const [toLocation, setToLocation] = useState<{ name: string; code: string } | null>({
+    name: "Dubai, UAE",
+    code: "dxb",
+  })
   const [showCalender, setShowCalender] = useState<boolean>(false)
   const [startDate, setStartDate] = useState<Date | null>(new Date(todayYear, todayMonth, todayDay)) // Store as Date object
   const [endDate, setEndDate] = useState<Date | null>(null) // Store as Date object
@@ -92,8 +103,85 @@ const Banner = () => {
   const calendarRef = useRef<HTMLDivElement>(null)
   const n = useRouter()
 
-  const handleSearch = () => {
-    n.push("/flight")
+  const handleSearch = async () => {
+    if (!fromLocation || !toLocation || !startDate) {
+      alert("Please fill in all required fields")
+      return
+    }
+
+    if (tripType === "return" && !endDate) {
+      alert("Please select a return date")
+      return
+    }
+
+    try {
+      const searchData = {
+        fromLocationCode: fromLocation.code,
+        toLocationCode: toLocation.code,
+        fromLocationName: fromLocation.name,
+        toLocationName: toLocation.name,
+        startDate: startDate.toISOString(),
+        endDate: endDate?.toISOString(),
+        tripType,
+        passengers,
+        cabinClass,
+      }
+
+      console.log("[v0] Searching flights with data:", searchData)
+      const token = await new SignJWT(searchData)
+        .setProtectedHeader({ alg: "HS256" })
+        .setExpirationTime("1h")
+        .sign(SECRET_KEY);
+      // Store in localStorage
+      localStorage.setItem("searchDataToken", token);
+      n.push("/flight");
+      // const response = await fetch("/api/search-flights", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify(searchData),
+      // })
+
+      // const result = await response.json()
+
+      // console.log("this is result");
+      // console.log(result);
+      // if (result.success) {
+      //   console.log("[v0] Flight search successful:", result)
+
+      //   localStorage.setItem("offerRequestId", result.offerRequestId)
+
+      //   if (result.offers && result.offers.length > 0) {
+      //     console.log("[v0] Found immediate offers:", result.offers)
+      //   } else {
+      //     console.log("[v0] Searching for offers with ID:", result.offerRequestId)
+
+      //     setTimeout(async () => {
+      //       try {
+      //         const offersResponse = await fetch(`/api/get-offers?offerRequestId=${result.offerRequestId}`)
+      //         const offersResult = await offersResponse.json()
+
+      //         if (offersResult.success) {
+      //           console.log("[v0] Retrieved offers:", offersResult.offers)
+      //           alert(`Found ${offersResult.offers.length} flight offers! Check console for details.`)
+      //         }
+      //       } catch (error) {
+      //         console.error("[v0] Error getting offers:", error)
+      //       }
+      //     }, 3000)
+      //   }
+
+      //   alert("Flight search initiated! Check console for results.")
+      // } else {
+      //   console.error("[v0] Flight search failed:", result)
+      //   alert(`Search failed: ${result.error}`)
+      // }
+    } catch (error) {
+      console.error("[v0] Error searching flights:", error)
+      alert("No flights available for this date")
+    }
+
   }
 
   useEffect(() => {
@@ -340,21 +428,33 @@ const Banner = () => {
   }
 
   const cities = [
-    "Karachi, Pakistan",
-    "Dubai, UAE",
-    "Lahore, Pakistan",
-    "Islamabad, Pakistan",
-    "London, UK",
-    "New York, USA",
-    "Toronto, Canada",
-    "Sydney, Australia",
+    { name: "Karachi, Pakistan", code: "khi" },
+    { name: "Dubai, UAE", code: "dxb" },
+    { name: "Lahore, Pakistan", code: "lhe" },
+    { name: "Islamabad, Pakistan", code: "isb" },
+    { name: "London, UK", code: "lon" },
+    { name: "New York, USA", code: "nyc" },
+    { name: "Toronto, Canada", code: "yyz" },
+    { name: "Sydney, Australia", code: "syd" },
   ]
 
   const filteredFromCities =
-    fromQuery === "" ? cities : cities.filter((city) => city.toLowerCase().includes(fromQuery.toLowerCase()))
+    fromQuery === ""
+      ? cities
+      : cities.filter(
+        (city) =>
+          city.name.toLowerCase().includes(fromQuery.toLowerCase()) ||
+          city.code.toLowerCase().includes(fromQuery.toLowerCase()),
+      )
 
   const filteredToCities =
-    toQuery === "" ? cities : cities.filter((city) => city.toLowerCase().includes(toQuery.toLowerCase()))
+    toQuery === ""
+      ? cities
+      : cities.filter(
+        (city) =>
+          city.name.toLowerCase().includes(toQuery.toLowerCase()) ||
+          city.code.toLowerCase().includes(toQuery.toLowerCase()),
+      )
 
   return (
     <div className=" bg-gradient-to-br from-[#1479C9] via-[#0B2F5C] to-[#EF3D23] relative overflow-hidden">
@@ -603,7 +703,7 @@ const Banner = () => {
                           className="w-full placeholder-[#059669] bg-green-50 px-4 py-2 text-sm leading-5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-300"
                           placeholder="From"
                           onChange={(e) => setFromQuery(e.target.value)}
-                          displayValue={(city: string) => city}
+                          displayValue={(city: { name: string; code: string } | null) => city?.name || ""}
                         />
                         <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-3">
                           <ChevronUpDownIcon className="h-5 w-5 text-green-600" />
@@ -614,14 +714,16 @@ const Banner = () => {
                         <div className="px-4 pt-3 pb-1 text-xs font-medium text-gray-500 uppercase">Suggestions</div>
                         {filteredFromCities.map((city) => (
                           <Combobox.Option
-                            key={`from-${city}`}
+                            key={`from-${city.code}`}
                             value={city}
                             className={({ active }) =>
-                              `flex justify-between items-center px-4 py-2 cursor-pointer ${active ? "bg-green-100" : "hover:bg-gray-100"
-                              }`
+                              `flex justify-between items-center px-4 py-2 cursor-pointer ${active ? "bg-green-100" : "hover:bg-gray-100"}`
                             }
                           >
-                            <span className="truncate">{city}</span>
+                            <div className="flex flex-col">
+                              <span className="truncate">{city.name}</span>
+                              <span className="text-xs text-gray-500 uppercase">{city.code}</span>
+                            </div>
                             <button className="text-green-600 font-bold text-lg">+</button>
                           </Combobox.Option>
                         ))}
@@ -656,7 +758,7 @@ const Banner = () => {
                           className="w-full placeholder-[#ea580c] bg-orange-50 px-4 py-2 text-sm leading-5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-300"
                           placeholder="To"
                           onChange={(e) => setToQuery(e.target.value)}
-                          displayValue={(city: string) => city}
+                          displayValue={(city: { name: string; code: string } | null) => city?.name || ""}
                         />
                         <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-3">
                           <ChevronUpDownIcon className="h-5 w-5 text-orange-600" />
@@ -667,14 +769,16 @@ const Banner = () => {
                         <div className="px-4 pt-3 pb-1 text-xs font-medium text-gray-500 uppercase">Suggestions</div>
                         {filteredToCities.map((city) => (
                           <Combobox.Option
-                            key={`to-${city}`}
+                            key={`to-${city.code}`}
                             value={city}
                             className={({ active }) =>
-                              `flex justify-between items-center px-4 py-2 cursor-pointer ${active ? "bg-orange-100" : "hover:bg-gray-100"
-                              }`
+                              `flex justify-between items-center px-4 py-2 cursor-pointer ${active ? "bg-orange-100" : "hover:bg-gray-100"}`
                             }
                           >
-                            <span className="truncate">{city}</span>
+                            <div className="flex flex-col">
+                              <span className="truncate">{city.name}</span>
+                              <span className="text-xs text-gray-500 uppercase">{city.code}</span>
+                            </div>
                             <button className="text-orange-600 font-bold text-lg">+</button>
                           </Combobox.Option>
                         ))}

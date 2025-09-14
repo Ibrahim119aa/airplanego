@@ -1,14 +1,14 @@
 "use client"
+import { SignJWT, jwtVerify } from "jose";
 
-import { useState, useMemo } from "react"
-import React from "react"
+const SECRET_KEY = new TextEncoder().encode("your-secret-key");
+import { useState, useMemo, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
-import { AnimatePresence } from "framer-motion"
 import {
   Luggage,
   Briefcase,
@@ -22,95 +22,288 @@ import {
   LayoutGrid,
   BarChart2,
   Filter,
+  Plane,
+  Clock,
+  Euro,
+  Loader2,
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 
-const FlightDetailModalComponent = React.lazy(() => import("@/components/Modal/FlightDetailModel"))
-
-type QuantityControlProps = {
-  label: string
-  icon: any
-  count: number
-  setCount: (newCount: number) => void
-}
-
-type BaggageInfo = {
-  cabinBag: string
-  checkedBag: string
-  personalItem: string
-}
-
-type FlightLeg = {
-  date: string
-  time: string
-  airport: string
+type FlightSegment = {
+  id: string
+  origin: {
+    iata_code: string
+    name: string
+    city_name: string
+  }
+  destination: {
+    iata_code: string
+    name: string
+    city_name: string
+  }
+  departing_at: string
+  arriving_at: string
   duration: string
-  totalDuration: string // Total journey time including stops
-  type: "Direct" | "1 stop" | "2 stops"
-  arrivalTime: string
-  arrivalAirport: string
-  airline: string
-  aircraftType: string
-  baggage: BaggageInfo
-  stops?: {
-    airport: string
-    cityName: string // Added city name for better UX
-    duration: string
-    isOvernight?: boolean
-    arrivalTime?: string
-    departureTime?: string
-  }[]
+  marketing_carrier: {
+    name: string
+    iata_code: string
+    logo_symbol_url?: string
+    marketing_carrier_flight_number?: string
+  }
+  operating_carrier: {
+    name: string
+    iata_code: string
+  }
+  stops: any[]
 }
 
-type BookingOption = {
-  type: "Standard" | "Flex"
-  price: number
-  features: string[]
-  restrictions: string[]
-}
-
-type FlightOption = {
+type FlightSlice = {
   id: string
-  outbound: FlightLeg
-  inbound?: FlightLeg
-  nightsInDestination?: number
-  basePrice: number
-  bookingOptions: BookingOption[]
-  guaranteeAvailable: boolean
-  guaranteeAmount: number
+  origin: {
+    iata_code: string
+    name: string
+    city_name: string
+  }
+  destination: {
+    iata_code: string
+    name: string
+    city_name: string
+  }
+  duration: string
+  segments: FlightSegment[]
 }
 
-type TimeRange = "morning" | "afternoon" | "evening" | "night"
-
-type DateFilterOption = {
+type FlightOffer = {
   id: string
-  label: string
-  price: number
+  total_amount: string
+  total_currency: string
+  base_amount: string
+  tax_amount: string
+  total_emissions_kg: string
+  slices: FlightSlice[]
+  owner: {
+    name: string
+    iata_code: string
+    logo_symbol_url?: string
+  }
+  created_at: string
+  expires_at: string
 }
 
-interface FlightDetailModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+const parseDuration = (duration: string): string => {
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?/)
+  if (!match) return duration
+
+  const hours = match[1] ? Number.parseInt(match[1]) : 0
+  const minutes = match[2] ? Number.parseInt(match[2]) : 0
+
+  if (hours && minutes) {
+    return `${hours}h ${minutes}m`
+  } else if (hours) {
+    return `${hours}h`
+  } else if (minutes) {
+    return `${minutes}m`
+  }
+  return duration
 }
 
-function FlightDetailModal({ open, onOpenChange }: FlightDetailModalProps) {
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-        <h2 className="text-lg font-semibold mb-4">Flight Details</h2>
-        <p className="text-gray-600 mb-4">Flight details would be displayed here.</p>
-        <Button onClick={() => onOpenChange(false)} className="w-full">
-          Close
-        </Button>
+const formatTime = (isoString: string): string => {
+  const date = new Date(isoString)
+  return date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+}
+
+const formatDate = (isoString: string): string => {
+  const date = new Date(isoString)
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  })
+}
+
+const LoadingState = () => (
+  <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50 p-2 sm:p-4 md:p-6 gap-4">
+    {/* Loading Sidebar */}
+    <div className="hidden lg:block w-[300px] xl:w-[320px] flex-shrink-0">
+      <div className="bg-white rounded-lg shadow-sm p-4 h-fit sticky top-4">
+        <div className="space-y-4">
+          {/* Trip type skeleton */}
+          <div className="pb-4 border-b border-gray-200">
+            <div className="h-4 bg-gray-200 rounded w-20 mb-3 animate-pulse"></div>
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-100 rounded w-24 animate-pulse"></div>
+              <div className="h-4 bg-gray-100 rounded w-20 animate-pulse"></div>
+            </div>
+          </div>
+
+          {/* Airlines skeleton */}
+          <div className="pb-4 border-b border-gray-200">
+            <div className="h-4 bg-gray-200 rounded w-16 mb-3 animate-pulse"></div>
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-gray-100 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-100 rounded flex-1 animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* More filter skeletons */}
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="pb-4 border-b border-gray-200">
+              <div className="h-4 bg-gray-200 rounded w-24 mb-3 animate-pulse"></div>
+              <div className="space-y-2">
+                {[1, 2].map((j) => (
+                  <div key={j} className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-gray-100 rounded animate-pulse"></div>
+                    <div className="h-4 bg-gray-100 rounded flex-1 animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
-  )
-}
+
+    {/* Loading Main Content */}
+    <div className="flex-1 bg-white rounded-lg shadow-sm p-3 sm:p-4 lg:p-6">
+      {/* Loading Header with Animated Plane */}
+      <div className="text-center py-12 mb-8">
+        <div className="relative inline-block">
+          <Plane className="w-16 h-16 text-primary animate-bounce mb-4" />
+          <div className="absolute -top-2 -right-2">
+            <Loader2 className="w-6 h-6 text-primary animate-spin" />
+          </div>
+        </div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Searching for flights...</h2>
+        <p className="text-gray-600 mb-4">Finding the best deals for your journey</p>
+
+        {/* Animated Progress Bar */}
+        <div className="w-64 mx-auto bg-gray-200 rounded-full h-2 mb-4">
+          <div
+            className="bg-primary h-2 rounded-full animate-pulse"
+            style={{
+              animation: "loading-progress 2s ease-in-out infinite",
+            }}
+          ></div>
+        </div>
+
+        {/* Loading Steps */}
+        <div className="flex justify-center items-center gap-4 text-sm text-gray-500">
+          <div className="flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            <span>Searching airlines</span>
+          </div>
+          <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-gray-400" />
+            <span>Comparing prices</span>
+          </div>
+          <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+          <div className="flex items-center gap-2">
+            <Euro className="w-4 h-4 text-gray-400" />
+            <span>Finding deals</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Date Filter Skeleton */}
+      <div className="mb-4">
+        <div className="flex space-x-2 sm:space-x-3 pb-2">
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <div key={i} className="flex-shrink-0 min-w-[100px] sm:min-w-[120px]">
+              <div className="h-16 bg-gray-100 rounded-lg animate-pulse"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tabs Skeleton */}
+      <div className="mb-6">
+        <div className="flex gap-4 border-b border-gray-200 pb-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="min-w-[100px]">
+              <div className="h-4 bg-gray-200 rounded w-12 mb-1 animate-pulse"></div>
+              <div className="h-3 bg-gray-100 rounded w-20 animate-pulse"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Flight Cards Skeleton */}
+      <div className="grid gap-3 sm:gap-4">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="p-3 sm:p-4 border border-gray-200 rounded-lg">
+            {/* Airline Header Skeleton */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+              </div>
+              <div className="text-right">
+                <div className="h-6 bg-gray-200 rounded w-16 mb-1 animate-pulse"></div>
+                <div className="h-3 bg-gray-100 rounded w-20 animate-pulse"></div>
+              </div>
+            </div>
+
+            {/* Flight Details Skeleton */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 mb-4">
+              <div className="text-right">
+                <div className="h-5 bg-gray-200 rounded w-12 mb-1 animate-pulse"></div>
+                <div className="h-3 bg-gray-100 rounded w-8 mb-1 animate-pulse"></div>
+                <div className="h-3 bg-gray-100 rounded w-16 animate-pulse"></div>
+              </div>
+              <div className="flex flex-col items-center px-2">
+                <div className="h-3 bg-gray-100 rounded w-12 mb-2 animate-pulse"></div>
+                <div className="flex items-center justify-center w-full">
+                  <div className="flex-1 h-px bg-gray-200"></div>
+                  <Plane className="w-4 h-4 mx-2 text-gray-300 animate-pulse" />
+                  <div className="flex-1 h-px bg-gray-200"></div>
+                </div>
+                <div className="h-3 bg-gray-100 rounded w-8 mt-2 animate-pulse"></div>
+              </div>
+              <div className="text-left">
+                <div className="h-5 bg-gray-200 rounded w-12 mb-1 animate-pulse"></div>
+                <div className="h-3 bg-gray-100 rounded w-8 mb-1 animate-pulse"></div>
+                <div className="h-3 bg-gray-100 rounded w-16 animate-pulse"></div>
+              </div>
+            </div>
+
+            {/* Footer Skeleton */}
+            <div className="flex justify-between items-center text-xs mb-3 pt-2 border-t border-gray-100">
+              <div className="h-3 bg-gray-100 rounded w-24 animate-pulse"></div>
+              <div className="h-3 bg-gray-100 rounded w-20 animate-pulse"></div>
+            </div>
+
+            {/* Button Skeleton */}
+            <div className="h-10 bg-gray-200 rounded-md animate-pulse"></div>
+          </Card>
+        ))}
+      </div>
+    </div>
+
+    <style jsx>{`
+      @keyframes loading-progress {
+        0% { width: 0%; }
+        50% { width: 70%; }
+        100% { width: 100%; }
+      }
+    `}</style>
+  </div>
+)
 
 export default function FlightSearch() {
-  const [tripType, setTripType] = useState<"round-trip" | "one-way">("round-trip")
+  const [Loading, setLoading] = useState(false)
+  const [sampleApiResponse, setSampleApiResponse] = useState<FlightOffer[]>([])
+  const [tripType, setTripType] = useState<"round-trip" | "one-way">("one-way")
   const [selectedAirlines, setSelectedAirlines] = useState<string[]>([])
   const [airlinesExpanded, setAirlinesExpanded] = useState(true)
   const [stopsExpanded, setStopsExpanded] = useState(true)
@@ -129,8 +322,64 @@ export default function FlightSearch() {
   const [selectedTab, setSelectedTab] = useState("best")
   const [isOpen, setIsOpen] = useState(false)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+  async function getSearchData() {
+    const token = localStorage.getItem("searchDataToken");
+    if (!token) return null;
 
-  const availableAirlines = ["Lufthansa", "Air France", "KLM", "British Airways", "Ryanair", "EasyJet"]
+    try {
+      const { payload } = await jwtVerify(token, SECRET_KEY);
+      localStorage.removeItem("searchDataToken");
+      return payload; // this will be your original object
+    } catch (error) {
+      console.error("Invalid or expired token", error);
+      return null;
+    }
+  }
+  const getFlightDetail = useCallback(async () => {
+    try {
+      console.log("this is search data ");
+      console.log(getSearchData());
+      // const searchData = {
+      //   fromLocationCode: "KHI",
+      //   toLocationCode: "DXB",
+      //   startDate: "2025-10-01",
+      //   passengers: { adults: 1, children: 0, infants: 0 },
+      //   cabinClass: "economy",
+      // }
+       const searchData = await getSearchData();
+
+     
+      console.log("[v0] Searching flights with data:", searchData)
+      setLoading(true)
+      const response = await fetch("/api/search-flights", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(searchData),
+      })
+
+      const result = await response.json()
+
+      console.log("this is result")
+      console.log(result)
+      setSampleApiResponse(result)
+      setLoading(false)
+    } catch (e) {
+      console.error("Error fetching flight details:", e)
+    }
+  }, [])
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await getFlightDetail()
+    }
+    fetchData()
+  }, [getFlightDetail])
+
+  const flightOffers = sampleApiResponse || []
+  const availableAirlines = Array.from(new Set(flightOffers.map((offer) => offer.owner.name)))
+
   const stopOptions = ["Direct", "1 stop", "2+ stops"]
   const departureTimeOptions = [
     { id: "early-morning", label: "Early morning", time: "00:00 - 06:00", icon: Moon },
@@ -158,171 +407,6 @@ export default function FlightSearch() {
     { id: "thu-21", label: "Thu 21", price: 289 },
     { id: "fri-22", label: "Fri 22", price: 267 },
     { id: "sat-23", label: "Sat 23", price: 245 },
-  ]
-
-  const flightOptions = [
-    {
-      id: 1,
-      basePrice: 156,
-      outbound: {
-        airline: "Lufthansa",
-        time: "06:00",
-        airport: "FRA",
-        arrivalTime: "09:30",
-        arrivalAirport: "LHR",
-        totalDuration: "8h 30m",
-        stops: [{ airport: "CDG", duration: "2h 15m" }],
-        date: "Tue, Nov 19",
-      },
-      inbound:
-        tripType === "round-trip"
-          ? {
-            airline: "Lufthansa",
-            time: "14:20",
-            airport: "LHR",
-            arrivalTime: "19:45",
-            arrivalAirport: "FRA",
-            totalDuration: "7h 25m",
-            stops: [],
-            date: "Sun, Nov 24",
-          }
-          : undefined,
-    },
-    {
-      id: 2,
-      basePrice: 203,
-      outbound: {
-        airline: "Air France",
-        time: "08:15",
-        airport: "CDG",
-        arrivalTime: "10:45",
-        arrivalAirport: "LHR",
-        totalDuration: "6h 30m",
-        stops: [],
-        date: "Tue, Nov 19",
-      },
-      inbound:
-        tripType === "round-trip"
-          ? {
-            airline: "Air France",
-            time: "16:30",
-            airport: "LHR",
-            arrivalTime: "21:15",
-            arrivalAirport: "CDG",
-            totalDuration: "6h 45m",
-            stops: [],
-            date: "Sun, Nov 24",
-          }
-          : undefined,
-    },
-    {
-      id: 3,
-      basePrice: 289,
-      outbound: {
-        airline: "British Airways",
-        time: "12:00",
-        airport: "LHR",
-        arrivalTime: "15:30",
-        arrivalAirport: "JFK",
-        totalDuration: "8h 30m",
-        stops: [],
-        date: "Tue, Nov 19",
-      },
-      inbound:
-        tripType === "round-trip"
-          ? {
-            airline: "British Airways",
-            time: "18:45",
-            airport: "JFK",
-            arrivalTime: "06:15",
-            arrivalAirport: "LHR",
-            totalDuration: "7h 30m",
-            stops: [],
-            date: "Sun, Nov 24",
-          }
-          : undefined,
-    },
-    {
-      id: 4,
-      basePrice: 234,
-      outbound: {
-        airline: "KLM",
-        time: "10:30",
-        airport: "AMS",
-        arrivalTime: "13:45",
-        arrivalAirport: "LHR",
-        totalDuration: "5h 15m",
-        stops: [],
-        date: "Tue, Nov 19",
-      },
-      inbound:
-        tripType === "round-trip"
-          ? {
-            airline: "KLM",
-            time: "15:20",
-            airport: "LHR",
-            arrivalTime: "20:35",
-            arrivalAirport: "AMS",
-            totalDuration: "5h 15m",
-            stops: [],
-            date: "Sun, Nov 24",
-          }
-          : undefined,
-    },
-    {
-      id: 5,
-      basePrice: 267,
-      outbound: {
-        airline: "Ryanair",
-        time: "07:45",
-        airport: "STN",
-        arrivalTime: "11:20",
-        arrivalAirport: "BCN",
-        totalDuration: "7h 35m",
-        stops: [{ airport: "MAD", duration: "1h 30m" }],
-        date: "Tue, Nov 19",
-      },
-      inbound:
-        tripType === "round-trip"
-          ? {
-            airline: "Ryanair",
-            time: "16:10",
-            airport: "BCN",
-            arrivalTime: "21:45",
-            arrivalAirport: "STN",
-            totalDuration: "7h 35m",
-            stops: [{ airport: "MAD", duration: "1h 30m" }],
-            date: "Sun, Nov 24",
-          }
-          : undefined,
-    },
-    {
-      id: 6,
-      basePrice: 245,
-      outbound: {
-        airline: "EasyJet",
-        time: "13:15",
-        airport: "LGW",
-        arrivalTime: "16:50",
-        arrivalAirport: "CDG",
-        totalDuration: "4h 35m",
-        stops: [],
-        date: "Tue, Nov 19",
-      },
-      inbound:
-        tripType === "round-trip"
-          ? {
-            airline: "EasyJet",
-            time: "18:30",
-            airport: "CDG",
-            arrivalTime: "22:05",
-            arrivalAirport: "LGW",
-            totalDuration: "4h 35m",
-            stops: [],
-            date: "Sun, Nov 24",
-          }
-          : undefined,
-    },
   ]
 
   const handleAirlineChange = (airline: string, checked: boolean) => {
@@ -366,46 +450,59 @@ export default function FlightSearch() {
   }
 
   const filteredFlights = useMemo(() => {
-    return flightOptions.filter((flight) => {
-      if (selectedAirlines.length > 0 && !selectedAirlines.includes(flight.outbound.airline)) {
+    return flightOffers.filter((offer) => {
+      if (selectedAirlines.length > 0 && !selectedAirlines.includes(offer.owner.name)) {
         return false
       }
-      if (flight.basePrice < priceRange[0] || flight.basePrice > priceRange[1]) {
+      const price = Number.parseFloat(offer.total_amount)
+      if (price < priceRange[0] || price > priceRange[1]) {
         return false
       }
       return true
     })
-  }, [selectedAirlines, priceRange])
+  }, [flightOffers, selectedAirlines, priceRange])
 
   const best = useMemo(() => {
     if (filteredFlights.length === 0) return null
     return filteredFlights.reduce((prev, current) => {
-      const prevScore = prev.basePrice * 0.6 + Number.parseInt(prev.outbound.totalDuration) * 0.4
-      const currentScore = current.basePrice * 0.6 + Number.parseInt(current.outbound.totalDuration) * 0.4
+      const prevPrice = Number.parseFloat(prev.total_amount)
+      const currentPrice = Number.parseFloat(current.total_amount)
+      const prevDuration = prev.slices[0]?.duration || "PT0M"
+      const currentDuration = current.slices[0]?.duration || "PT0M"
+
+      const prevScore = prevPrice * 0.6 + parseDuration(prevDuration).length * 0.4
+      const currentScore = currentPrice * 0.6 + parseDuration(currentDuration).length * 0.4
       return prevScore < currentScore ? prev : current
     })
   }, [filteredFlights])
 
   const cheapest = useMemo(() => {
     if (filteredFlights.length === 0) return null
-    return filteredFlights.reduce((prev, current) => (prev.basePrice < current.basePrice ? prev : current))
+    return filteredFlights.reduce((prev, current) =>
+      Number.parseFloat(prev.total_amount) < Number.parseFloat(current.total_amount) ? prev : current,
+    )
   }, [filteredFlights])
 
   const fastest = useMemo(() => {
     if (filteredFlights.length === 0) return null
     return filteredFlights.reduce((prev, current) => {
-      const prevDuration = Number.parseInt(prev.outbound.totalDuration)
-      const currentDuration = Number.parseInt(current.outbound.totalDuration)
+      const prevDuration = prev.slices[0]?.duration || "PT24H"
+      const currentDuration = current.slices[0]?.duration || "PT24H"
       return prevDuration < currentDuration ? prev : current
     })
   }, [filteredFlights])
 
-  const renderSimplifiedStops = (flight: any) => {
-    if (flight.stops.length === 0) {
+  const renderFlightStops = (segments: FlightSegment[]) => {
+    const totalStops = segments.reduce((acc, segment) => acc + segment.stops.length, 0)
+
+    if (totalStops === 0) {
       return (
         <div className="flex items-center justify-center w-full">
           <div className="flex-1 h-px bg-gray-300"></div>
-          <div className="mx-2 text-xs text-gray-500">Direct</div>
+          <div className="mx-2 text-xs text-gray-500 flex items-center gap-1">
+            <Plane className="w-3 h-3" />
+            Direct
+          </div>
           <div className="flex-1 h-px bg-gray-300"></div>
         </div>
       )
@@ -414,8 +511,9 @@ export default function FlightSearch() {
     return (
       <div className="flex items-center justify-center w-full">
         <div className="flex-1 h-px bg-gray-300"></div>
-        <div className="mx-2 text-xs text-gray-500">
-          {flight.stops.length} stop{flight.stops.length > 1 ? "s" : ""}
+        <div className="mx-2 text-xs text-gray-500 flex items-center gap-1">
+          <Plane className="w-3 h-3" />
+          {totalStops} stop{totalStops > 1 ? "s" : ""}
         </div>
         <div className="flex-1 h-px bg-gray-300"></div>
       </div>
@@ -616,6 +714,10 @@ export default function FlightSearch() {
     </div>
   )
 
+  if (Loading) {
+    return <LoadingState />
+  }
+
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50 p-2 sm:p-4 md:p-6 gap-4">
       <div className="hidden lg:block w-[300px] xl:w-[320px] flex-shrink-0">
@@ -689,16 +791,16 @@ export default function FlightSearch() {
           </div>
         </div>
 
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full  mb-6">
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full mb-6">
           <ScrollArea className="w-full whitespace-nowrap">
-            <TabsList className="flex justify-start  h-auto p-0 bg-transparent border-b border-gray-200 w-full min-w-max">
+            <TabsList className="flex justify-start h-auto p-0 bg-transparent border-b border-gray-200 w-full min-w-max">
               <TabsTrigger
                 value="best"
                 className="flex flex-col items-start px-3 sm:px-4 py-2 text-left rounded-none border-b-2 border-transparent text-gray-600 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-primary/5 min-w-[80px] sm:min-w-[100px]"
               >
                 <span className="font-semibold text-xs sm:text-sm">Best</span>
                 <span className="text-xs text-gray-500 truncate max-w-[70px] sm:max-w-none">
-                  {best ? `€${best.basePrice} • ${best.outbound.totalDuration}` : "N/A"}
+                  {best ? `€${best.total_amount} • ${parseDuration(best.slices[0]?.duration || "")}` : "N/A"}
                 </span>
               </TabsTrigger>
               <TabsTrigger
@@ -707,7 +809,9 @@ export default function FlightSearch() {
               >
                 <span className="font-semibold text-xs sm:text-sm">Cheapest</span>
                 <span className="text-xs text-gray-500 truncate max-w-[70px] sm:max-w-none">
-                  {cheapest ? `€${cheapest.basePrice} • ${cheapest.outbound.totalDuration}` : "N/A"}
+                  {cheapest
+                    ? `€${cheapest.total_amount} • ${parseDuration(cheapest.slices[0]?.duration || "")}`
+                    : "N/A"}
                 </span>
               </TabsTrigger>
               <TabsTrigger
@@ -716,7 +820,7 @@ export default function FlightSearch() {
               >
                 <span className="font-semibold text-xs sm:text-sm">Fastest</span>
                 <span className="text-xs text-gray-500 truncate max-w-[70px] sm:max-w-none">
-                  {fastest ? `€${fastest.basePrice} • ${fastest.outbound.totalDuration}` : "N/A"}
+                  {fastest ? `€${fastest.total_amount} • ${parseDuration(fastest.slices[0]?.duration || "")}` : "N/A"}
                 </span>
               </TabsTrigger>
               <DropdownMenu>
@@ -743,67 +847,79 @@ export default function FlightSearch() {
         <ScrollArea className="h-[calc(100vh-200px)] sm:h-[calc(100vh-180px)]">
           <div className="grid gap-3 sm:gap-4">
             {filteredFlights.length > 0 ? (
-              filteredFlights.map((option) => (
+              filteredFlights.map((offer) => (
                 <Card
-                  key={option.id}
+                  key={offer.id}
                   className="p-3 sm:p-4 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 mb-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
-                        {option.outbound.airline.charAt(0)}
-                      </div>
-                      <span className="font-semibold text-sm sm:text-base text-gray-800">
-                        {option.outbound.airline}
-                      </span>
+                      {offer.owner.logo_symbol_url ? (
+                        <img
+                          src={offer.owner.logo_symbol_url || "/placeholder.svg"}
+                          alt={offer.owner.name}
+                          className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
+                          {offer.owner.iata_code}
+                        </div>
+                      )}
+                      <span className="font-semibold text-sm sm:text-base text-gray-800">{offer.owner.name}</span>
                     </div>
                     <div className="text-left sm:text-right">
-                      <span className="text-xl sm:text-2xl font-bold text-primary">€{option.basePrice}</span>
+                      <div className="flex items-center gap-1">
+                        <Euro className="w-4 h-4 text-primary" />
+                        <span className="text-xl sm:text-2xl font-bold text-primary">{offer.total_amount}</span>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Base: €{offer.base_amount} + Tax: €{offer.tax_amount}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-[1fr_auto_1fr] sm:grid-cols-[auto_1fr_auto] items-center gap-2 mb-2">
-                    <div className="text-left sm:text-right">
-                      <div className="font-bold text-base sm:text-lg">{option.outbound.time}</div>
-                      <div className="text-xs sm:text-sm text-gray-500">{option.outbound.airport}</div>
+                  {offer.slices.map((slice, sliceIndex) => (
+                    <div key={slice.id} className="mb-4">
+                      {slice.segments.map((segment, segmentIndex) => (
+                        <div key={segment.id}>
+                          <div className="grid grid-cols-[1fr_auto_1fr] sm:grid-cols-[auto_1fr_auto] items-center gap-2 mb-2">
+                            <div className="text-left sm:text-right">
+                              <div className="font-bold text-base sm:text-lg">{formatTime(segment.departing_at)}</div>
+                              <div className="text-xs sm:text-sm text-gray-500">{segment.origin.iata_code}</div>
+                              <div className="text-xs text-gray-400">{segment.origin.city_name}</div>
+                            </div>
+                            <div className="flex flex-col items-center px-2">
+                              <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {parseDuration(segment.duration)}
+                              </div>
+                              {renderFlightStops([segment])}
+                              <div className="text-xs text-gray-400 mt-1">
+                                {segment.marketing_carrier.iata_code}{" "}
+                                {segment.marketing_carrier.marketing_carrier_flight_number || ""}
+                              </div>
+                            </div>
+                            <div className="text-right sm:text-left">
+                              <div className="font-bold text-base sm:text-lg">{formatTime(segment.arriving_at)}</div>
+                              <div className="text-xs sm:text-sm text-gray-500">{segment.destination.iata_code}</div>
+                              <div className="text-xs text-gray-400">{segment.destination.city_name}</div>
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-500 text-center mb-3">
+                            {formatDate(segment.departing_at)}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="flex flex-col items-center px-2">
-                      <div className="text-xs text-gray-500 mb-1">{option.outbound.totalDuration}</div>
-                      {renderSimplifiedStops(option.outbound)}
-                    </div>
-                    <div className="text-right sm:text-left">
-                      <div className="font-bold text-base sm:text-lg">{option.outbound.arrivalTime}</div>
-                      <div className="text-xs sm:text-sm text-gray-500">{option.outbound.arrivalAirport}</div>
-                    </div>
+                  ))}
+
+                  <div className="flex justify-between items-center text-xs text-gray-500 mb-3 pt-2 border-t border-gray-100">
+                    <span>CO₂ emissions: {offer.total_emissions_kg}kg</span>
+                    <span>Expires: {formatTime(offer.expires_at)}</span>
                   </div>
-                  <div className="text-xs text-gray-500 text-center mb-3">{option.outbound.date}</div>
 
-                  {option.inbound && (
-                    <>
-                      <div className="border-t border-dashed border-gray-200 my-3" />
-                      <div className="grid grid-cols-[1fr_auto_1fr] sm:grid-cols-[auto_1fr_auto] items-center gap-2 mb-2">
-                        <div className="text-left sm:text-right">
-                          <div className="font-bold text-base sm:text-lg">{option.inbound.time}</div>
-                          <div className="text-xs sm:text-sm text-gray-500">{option.inbound.airport}</div>
-                        </div>
-                        <div className="flex flex-col items-center px-2">
-                          <div className="text-xs text-gray-500 mb-1">{option.inbound.totalDuration}</div>
-                          {renderSimplifiedStops(option.inbound)}
-                        </div>
-                        <div className="text-right sm:text-left">
-                          <div className="font-bold text-base sm:text-lg">{option.inbound.arrivalTime}</div>
-                          <div className="text-xs sm:text-sm text-gray-500">{option.inbound.arrivalAirport}</div>
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-500 text-center mb-3">{option.inbound.date}</div>
-                    </>
-                  )}
-
-                  <Button
-                    onClick={() => setIsOpen((prev) => !prev)}
-                    className="w-full mt-4 bg-primary hover:bg-primary/90 text-white font-semibold py-2 rounded-md"
-                  >
-                    Select Flight
+                  <Button className="w-full mt-4 bg-primary hover:bg-primary/90 text-white font-semibold py-2 rounded-md">
+                    Select Flight - €{offer.total_amount}
                   </Button>
                 </Card>
               ))
@@ -814,9 +930,6 @@ export default function FlightSearch() {
               </div>
             )}
           </div>
-          <AnimatePresence>
-            {isOpen && <FlightDetailModalComponent onOpenChange={setIsOpen} open={isOpen} />}
-          </AnimatePresence>
         </ScrollArea>
       </div>
     </div>
