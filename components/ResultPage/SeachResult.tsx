@@ -1,7 +1,7 @@
 "use client"
-import { SignJWT, jwtVerify } from "jose";
+import { jwtVerify } from "jose"
 
-const SECRET_KEY = new TextEncoder().encode("your-secret-key");
+const SECRET_KEY = new TextEncoder().encode("your-secret-key")
 import { useState, useMemo, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -323,32 +323,24 @@ export default function FlightSearch() {
   const [isOpen, setIsOpen] = useState(false)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   async function getSearchData() {
-    const token = localStorage.getItem("searchDataToken");
-    if (!token) return null;
+    const token = localStorage.getItem("searchDataToken")
+    if (!token) return null
 
     try {
-      const { payload } = await jwtVerify(token, SECRET_KEY);
-      localStorage.removeItem("searchDataToken");
-      return payload; // this will be your original object
+      const { payload } = await jwtVerify(token, SECRET_KEY)
+      localStorage.removeItem("searchDataToken")
+      return payload // this will be your original object
     } catch (error) {
-      console.error("Invalid or expired token", error);
-      return null;
+      console.error("Invalid or expired token", error)
+      return null
     }
   }
   const getFlightDetail = useCallback(async () => {
     try {
-      console.log("this is search data ");
-      console.log(getSearchData());
-      // const searchData = {
-      //   fromLocationCode: "KHI",
-      //   toLocationCode: "DXB",
-      //   startDate: "2025-10-01",
-      //   passengers: { adults: 1, children: 0, infants: 0 },
-      //   cabinClass: "economy",
-      // }
-       const searchData = await getSearchData();
+      console.log("this is search data ")
+      console.log(getSearchData())
+      const searchData = await getSearchData()
 
-     
       console.log("[v0] Searching flights with data:", searchData)
       setLoading(true)
       const response = await fetch("/api/search-flights", {
@@ -451,16 +443,114 @@ export default function FlightSearch() {
 
   const filteredFlights = useMemo(() => {
     return flightOffers.filter((offer) => {
+      // Airline filter
       if (selectedAirlines.length > 0 && !selectedAirlines.includes(offer.owner.name)) {
         return false
       }
+
+      // Price filter
       const price = Number.parseFloat(offer.total_amount)
       if (price < priceRange[0] || price > priceRange[1]) {
         return false
       }
+
+      // Stops filter
+      if (selectedStops.length > 0) {
+        const totalStops = offer.slices.reduce(
+          (acc, slice) => acc + slice.segments.reduce((segAcc, segment) => segAcc + segment.stops.length, 0),
+          0,
+        )
+
+        const hasMatchingStops = selectedStops.some((stop) => {
+          if (stop === "Direct" && totalStops === 0) return true
+          if (stop === "1 stop" && totalStops === 1) return true
+          if (stop === "2+ stops" && totalStops >= 2) return true
+          return false
+        })
+
+        if (!hasMatchingStops) return false
+      }
+
+      // Departure time filter
+      if (selectedDepartureTimes.length > 0) {
+        const hasMatchingDepartureTime = offer.slices.some((slice) =>
+          slice.segments.some((segment) => {
+            const departureTime = new Date(segment.departing_at)
+            const hour = departureTime.getHours()
+
+            return selectedDepartureTimes.some((timeId) => {
+              switch (timeId) {
+                case "early-morning":
+                  return hour >= 0 && hour < 6
+                case "morning":
+                  return hour >= 6 && hour < 12
+                case "afternoon":
+                  return hour >= 12 && hour < 18
+                case "evening":
+                  return hour >= 18 && hour < 24
+                default:
+                  return false
+              }
+            })
+          }),
+        )
+
+        if (!hasMatchingDepartureTime) return false
+      }
+
+      // Arrival time filter
+      if (selectedArrivalTimes.length > 0) {
+        const hasMatchingArrivalTime = offer.slices.some((slice) =>
+          slice.segments.some((segment) => {
+            const arrivalTime = new Date(segment.arriving_at)
+            const hour = arrivalTime.getHours()
+
+            return selectedArrivalTimes.some((timeId) => {
+              switch (timeId) {
+                case "early-morning":
+                  return hour >= 0 && hour < 6
+                case "morning":
+                  return hour >= 6 && hour < 12
+                case "afternoon":
+                  return hour >= 12 && hour < 18
+                case "evening":
+                  return hour >= 18 && hour < 24
+                default:
+                  return false
+              }
+            })
+          }),
+        )
+
+        if (!hasMatchingArrivalTime) return false
+      }
+
+      // Duration filter
+      if (maxDuration < 24) {
+        const totalDurationHours = offer.slices.reduce((acc, slice) => {
+          const durationMatch = slice.duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?/)
+          if (!durationMatch) return acc
+
+          const hours = durationMatch[1] ? Number.parseInt(durationMatch[1]) : 0
+          const minutes = durationMatch[2] ? Number.parseInt(durationMatch[2]) : 0
+
+          return acc + hours + minutes / 60
+        }, 0)
+
+        if (totalDurationHours > maxDuration) return false
+      }
+
       return true
     })
-  }, [flightOffers, selectedAirlines, priceRange])
+  }, [
+    flightOffers,
+    selectedAirlines,
+    priceRange,
+    selectedStops,
+    selectedDepartureTimes,
+    selectedArrivalTimes,
+    maxDuration,
+  ])
 
   const best = useMemo(() => {
     if (filteredFlights.length === 0) return null
@@ -711,6 +801,80 @@ export default function FlightSearch() {
           </div>
         )}
       </div>
+
+      <div className="pb-4 border-b border-gray-200">
+        <div
+          className="flex items-center justify-between cursor-pointer py-1"
+          onClick={() => setPriceExpanded(!priceExpanded)}
+        >
+          <h2 className="text-base font-semibold">Price</h2>
+          {priceExpanded ? (
+            <ChevronUp className="w-4 h-4 text-gray-500" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-gray-500" />
+          )}
+        </div>
+        {priceExpanded && (
+          <div className="mt-3 space-y-3">
+            <div className="px-2">
+              <div className="flex justify-between text-sm text-gray-600 mb-2">
+                <span>€{priceRange[0]}</span>
+                <span>€{priceRange[1]}</span>
+              </div>
+              <div className="relative">
+                <input
+                  type="range"
+                  min="0"
+                  max="1000"
+                  value={priceRange[0]}
+                  onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
+                  className="absolute w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <input
+                  type="range"
+                  min="0"
+                  max="1000"
+                  value={priceRange[1]}
+                  onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                  className="absolute w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="pb-4 border-b border-gray-200">
+        <div
+          className="flex items-center justify-between cursor-pointer py-1"
+          onClick={() => setDurationExpanded(!durationExpanded)}
+        >
+          <h2 className="text-base font-semibold">Duration</h2>
+          {durationExpanded ? (
+            <ChevronUp className="w-4 h-4 text-gray-500" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-gray-500" />
+          )}
+        </div>
+        {durationExpanded && (
+          <div className="mt-3 space-y-3">
+            <div className="px-2">
+              <div className="flex justify-between text-sm text-gray-600 mb-2">
+                <span>Max duration</span>
+                <span>{maxDuration}h</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="24"
+                value={maxDuration}
+                onChange={(e) => setMaxDuration(Number(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 
@@ -757,10 +921,11 @@ export default function FlightSearch() {
                   variant="outline"
                   className={`flex-shrink-0 flex flex-col items-center justify-center h-auto py-2 px-4 
               sm:px-6 rounded-lg border-2 transition-colors min-w-[100px] sm:min-w-[120px] 
-              ${selectedDateFilter === option.id
-                      ? "border-primary text-primary bg-primary/5"
-                      : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-                    }`}
+              ${
+                selectedDateFilter === option.id
+                  ? "border-primary text-primary bg-primary/5"
+                  : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+              }`}
                   onClick={() => setSelectedDateFilter(option.id)}
                 >
                   <span className="font-semibold text-xs sm:text-sm">{option.label}</span>
