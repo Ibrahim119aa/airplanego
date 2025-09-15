@@ -1,11 +1,17 @@
+"use client"
+import { useEffect } from "react";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import Image from "next/image";
 import { ArrowLeftRight } from "lucide-react";
 import { PopularFlights } from "@/types/Flight/PopularFlight";
+import AOS from "aos";
+import "aos/dist/aos.css";
 
 const PopularFlight = () => {
-
+    useEffect(() => {
+        AOS.init({ duration: 1000 });
+    }, []);
     const popularflight: PopularFlights[] = [
         {
             imageUrl: "/assets/images/popularflight1.avif",
@@ -92,9 +98,9 @@ const PopularFlight = () => {
                         {
                             popularflight &&
                             (
-                                popularflight.map((e) =>
+                                popularflight.map((e, index) =>
                                 (
-                                    <div data-aos="zoom-in" data-duration="1000">
+                                    <div key={index} data-aos="zoom-in" data-duration="1000">
                                         <Card className="hover:shadow-level1 cursor-pointer rounded-lg">
                                             <div className="flex gap-4">
                                                 <div>
@@ -124,11 +130,11 @@ const PopularFlight = () => {
                     </div>
                 </div>
             </div>
-            <div>
+            {/* <div>
                 <Button>
                     Show more
                 </Button>
-            </div>
+            </div> */}
         </div >
     )
 }

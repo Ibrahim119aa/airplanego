@@ -21,6 +21,7 @@ import {
   Plus,
   Minus,
   Search,
+  Settings,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -79,6 +80,17 @@ const Banner = () => {
   const todayDay = todayDate.getDate()
   const todayMonth = todayDate.getMonth() // 0-indexed
   const todayYear = todayDate.getFullYear()
+  const data = {
+    fromLocationCode: "khi",
+    toLocationCode: "dxb",
+    fromLocationName: "Karachi, Pakistan",
+    toLocationName: "Dubai, UAE",
+    startDate: "2025-09-17T19:00:00.000Z",
+    tripType: "oneway",
+    passengers: { adults: 1, children: 0, infants: 0 },
+    cabinClass: "economy",
+    exp: 1757940869,
+  }
 
   const [fromLocation, setFromLocation] = useState<string | null>("Karachi, Pakistan")
   const [toLocation, setToLocation] = useState<string | null>("Dubai, UAE")
@@ -104,6 +116,23 @@ const Banner = () => {
   const calendarRef = useRef<HTMLDivElement>(null)
   const n = useRouter()
   const [showMobileForm, setShowMobileForm] = useState(false)
+  const [showFieldSelector, setShowFieldSelector] = useState(false)
+  const [selectedFields, setSelectedFields] = useState<string[]>([])
+  const [availableFields] = useState(() => {
+    const getFieldsFromObject = (obj: any, prefix = ""): string[] => {
+      const fields: string[] = []
+      Object.keys(obj).forEach((key) => {
+        const fullKey = prefix ? `${prefix}.${key}` : key
+        if (typeof obj[key] === "object" && obj[key] !== null && !Array.isArray(obj[key])) {
+          fields.push(...getFieldsFromObject(obj[key], fullKey))
+        } else {
+          fields.push(fullKey)
+        }
+      })
+      return fields
+    }
+    return getFieldsFromObject(data)
+  })
 
   const handleSearch = () => {
     n.push("/flight")
@@ -278,15 +307,16 @@ const Banner = () => {
           key={day}
           className={`h-16 flex flex-col items-center justify-center cursor-pointer rounded-lg transition-all duration-200 relative border-2
             ${isPastDate ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""}
-            ${isStartDate
-              ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-600 shadow-lg transform scale-105"
-              : isEndDate
-                ? "bg-gradient-to-r from-green-500 to-green-600 text-white border-green-600 shadow-lg transform scale-105"
-                : inRange
-                  ? "bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 text-gray-800"
-                  : isPastDate
-                    ? "" // No hover effect for past dates
-                    : "hover:bg-gray-50 border-transparent hover:border-gray-200 hover:shadow-md"
+            ${
+              isStartDate
+                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-600 shadow-lg transform scale-105"
+                : isEndDate
+                  ? "bg-gradient-to-r from-green-500 to-green-600 text-white border-green-600 shadow-lg transform scale-105"
+                  : inRange
+                    ? "bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 text-gray-800"
+                    : isPastDate
+                      ? "" // No hover effect for past dates
+                      : "hover:bg-gray-50 border-transparent hover:border-gray-200 hover:shadow-md"
             }
             ${isToday && !isSelected && !isPastDate ? "border-blue-400 bg-blue-50" : ""}
           `}
@@ -369,6 +399,12 @@ const Banner = () => {
   const filteredToCities =
     toQuery === "" ? cities : cities.filter((city) => city.toLowerCase().includes(toQuery.toLowerCase()))
 
+  
+
+  const toggleFieldSelection = (field: string) => {
+    setSelectedFields((prev) => (prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field]))
+  }
+
   return (
     <div>
       <div className="  relative overflow-hidden">
@@ -388,20 +424,14 @@ const Banner = () => {
           <Card
             data-aos="zoom-in"
             data-aos-duration="1000"
-            className={`max-w-8xl relative shadow-2xl transition-all duration-300 ${showMobileForm ? "block" : "hidden md:block"
-              }`}
+            className={`max-w-8xl relative shadow-2xl transition-all duration-300 ${
+              showMobileForm ? "block" : "hidden md:block"
+            }`}
           >
             <CardContent className="p-4 md:p-6">
-              <div className="block md:hidden mb-4">
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowMobileForm(false)}
-                  className="w-full justify-center text-gray-600"
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  Close
-                </Button>
-              </div>
+              
+
+             
 
               <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 sm:gap-4 mb-6">
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
@@ -636,7 +666,8 @@ const Banner = () => {
                               key={`from-${city}`}
                               value={city}
                               className={({ active }) =>
-                                `flex justify-between items-center px-4 py-2 cursor-pointer ${active ? "bg-green-100" : "hover:bg-gray-100"
+                                `flex justify-between items-center px-4 py-2 cursor-pointer ${
+                                  active ? "bg-green-100" : "hover:bg-gray-100"
                                 }`
                               }
                             >
@@ -688,7 +719,8 @@ const Banner = () => {
                               key={`to-${city}`}
                               value={city}
                               className={({ active }) =>
-                                `flex justify-between items-center px-4 py-2 cursor-pointer ${active ? "bg-orange-100" : "hover:bg-gray-100"
+                                `flex justify-between items-center px-4 py-2 cursor-pointer ${
+                                  active ? "bg-orange-100" : "hover:bg-gray-100"
                                 }`
                               }
                             >

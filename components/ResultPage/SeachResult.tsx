@@ -328,7 +328,7 @@ export default function FlightSearch() {
 
     try {
       const { payload } = await jwtVerify(token, SECRET_KEY)
-      localStorage.removeItem("searchDataToken")
+      // localStorage.removeItem("searchDataToken")
       return payload // this will be your original object
     } catch (error) {
       console.error("Invalid or expired token", error)
