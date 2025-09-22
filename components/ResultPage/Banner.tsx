@@ -399,7 +399,7 @@ const Banner = () => {
   const filteredToCities =
     toQuery === "" ? cities : cities.filter((city) => city.toLowerCase().includes(toQuery.toLowerCase()))
 
-  
+    
 
   const toggleFieldSelection = (field: string) => {
     setSelectedFields((prev) => (prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field]))

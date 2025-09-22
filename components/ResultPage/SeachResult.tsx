@@ -1,5 +1,7 @@
 "use client"
 import { jwtVerify } from "jose"
+import FlightDetailModal from "../Modal/FlightDetailModel"
+import { AnimatePresence } from "framer-motion"
 
 const SECRET_KEY = new TextEncoder().encode("your-secret-key")
 import { useState, useMemo, useEffect, useCallback } from "react"
@@ -300,8 +302,8 @@ const LoadingState = () => (
   </div>
 )
 
-export default function FlightSearch() {
-  const [Loading, setLoading] = useState(false)
+export default function SearchResult() {
+  const [loading, setLoading] = useState(false)
   const [sampleApiResponse, setSampleApiResponse] = useState<FlightOffer[]>([])
   const [tripType, setTripType] = useState<"round-trip" | "one-way">("one-way")
   const [selectedAirlines, setSelectedAirlines] = useState<string[]>([])
@@ -321,6 +323,7 @@ export default function FlightSearch() {
   const [selectedDateFilter, setSelectedDateFilter] = useState("tue-19")
   const [selectedTab, setSelectedTab] = useState("best")
   const [isOpen, setIsOpen] = useState(false)
+  const [selectedFlight, setSelectedFlight] = useState<any>(null)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   async function getSearchData() {
     const token = localStorage.getItem("searchDataToken")
@@ -439,6 +442,11 @@ export default function FlightSearch() {
     } else {
       setSelectedBaggage(selectedBaggage.filter((b) => b !== baggage))
     }
+  }
+
+  const handleFlightSelect = (offer: any) => {
+    setSelectedFlight(offer)
+    setIsOpen(true)
   }
 
   const filteredFlights = useMemo(() => {
@@ -878,7 +886,7 @@ export default function FlightSearch() {
     </div>
   )
 
-  if (Loading) {
+  if (loading) {
     return <LoadingState />
   }
 
@@ -1083,7 +1091,10 @@ export default function FlightSearch() {
                     <span>Expires: {formatTime(offer.expires_at)}</span>
                   </div>
 
-                  <Button className="w-full mt-4 bg-primary hover:bg-primary/90 text-white font-semibold py-2 rounded-md">
+                  <Button
+                    onClick={() => handleFlightSelect(offer)}
+                    className="w-full mt-4 bg-primary hover:bg-primary/90 text-white font-semibold py-2 rounded-md"
+                  >
                     Select Flight - €{offer.total_amount}
                   </Button>
                 </Card>
@@ -1097,6 +1108,9 @@ export default function FlightSearch() {
           </div>
         </ScrollArea>
       </div>
+      <AnimatePresence>
+        {isOpen && <FlightDetailModal onOpenChange={setIsOpen} open={isOpen} flightData={selectedFlight} />}
+      </AnimatePresence>
     </div>
   )
 }
