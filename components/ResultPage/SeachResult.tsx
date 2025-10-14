@@ -129,6 +129,20 @@ const formatDate = (isoString: string): string => {
   })
 }
 
+const getDateId = (dateInput: string | Date) => {
+  const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput
+  const weekday = d.toLocaleDateString("en-US", { weekday: "short" }).slice(0, 3).toLowerCase()
+  const dayNum = d.getDate()
+  return `${weekday}-${dayNum}`
+}
+
+const getDateLabel = (dateInput: string | Date) => {
+  const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput
+  const weekday = d.toLocaleDateString("en-US", { weekday: "short" })
+  const dayNum = d.getDate()
+  return `${weekday} ${dayNum}`
+}
+
 const LoadingState = () => (
   <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50 p-2 sm:p-4 md:p-6 gap-4">
     {/* Loading Sidebar */}
@@ -358,7 +372,9 @@ export default function SearchResult() {
 
       console.log("this is result")
       console.log(result)
-      setSampleApiResponse(result)
+      setSampleApiResponse(
+        Array.isArray(result) ? result : Array.isArray((result as any)?.data) ? (result as any).data : [],
+      )
       setLoading(false)
     } catch (e) {
       console.error("Error fetching flight details:", e)
@@ -372,7 +388,7 @@ export default function SearchResult() {
     fetchData()
   }, [getFlightDetail])
 
-  const flightOffers = sampleApiResponse || []
+  const flightOffers = Array.isArray(sampleApiResponse) ? sampleApiResponse : []
   const availableAirlines = Array.from(new Set(flightOffers.map((offer) => offer.owner.name)))
 
   const stopOptions = ["Direct", "1 stop", "2+ stops"]
@@ -394,15 +410,40 @@ export default function SearchResult() {
     { id: "checked-bag", label: "Checked bag", icon: Luggage },
   ]
 
-  const dateFilterOptions = [
-    { id: "sun-17", label: "Sun 17", price: 234 },
-    { id: "mon-18", label: "Mon 18", price: 180 },
-    { id: "tue-19", label: "Tue 19", price: 156 },
-    { id: "wed-20", label: "Wed 20", price: 203 },
-    { id: "thu-21", label: "Thu 21", price: 289 },
-    { id: "fri-22", label: "Fri 22", price: 267 },
-    { id: "sat-23", label: "Sat 23", price: 245 },
-  ]
+  const computedDateFilterOptions = useMemo(() => {
+    const map = new Map<string, { dateKey: string; date: Date; id: string; label: string; price: number }>()
+
+    for (const offer of flightOffers) {
+      const slice0 = offer.slices?.[0]
+      const seg0 = slice0?.segments?.[0]
+      if (!seg0?.departing_at) continue
+      const d = new Date(seg0.departing_at)
+      const id = getDateId(d)
+      const label = getDateLabel(d)
+      const price = Number.parseFloat(offer.total_amount)
+      const dayOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate()) // normalize for sort
+
+      const existing = map.get(id)
+      if (!existing || price < existing.price) {
+        map.set(id, {
+          dateKey: dayOnly.toISOString(),
+          date: dayOnly,
+          id,
+          label,
+          price,
+        })
+      }
+    }
+
+    const items = Array.from(map.values()).sort((a, b) => a.date.getTime() - b.date.getTime())
+    return items.map((i) => ({ id: i.id, label: i.label, price: Math.round(i.price) }))
+  }, [flightOffers])
+
+  useEffect(() => {
+    if (computedDateFilterOptions.length > 0 && !computedDateFilterOptions.some((d) => d.id === selectedDateFilter)) {
+      setSelectedDateFilter(computedDateFilterOptions[0].id)
+    }
+  }, [computedDateFilterOptions, selectedDateFilter])
 
   const handleAirlineChange = (airline: string, checked: boolean) => {
     if (checked) {
@@ -460,6 +501,14 @@ export default function SearchResult() {
       const price = Number.parseFloat(offer.total_amount)
       if (price < priceRange[0] || price > priceRange[1]) {
         return false
+      }
+
+      if (selectedDateFilter && computedDateFilterOptions.length > 0) {
+        const outboundSeg0 = offer.slices?.[0]?.segments?.[0]
+        const outboundId = outboundSeg0?.departing_at ? getDateId(outboundSeg0.departing_at) : null
+        if (outboundId !== selectedDateFilter) {
+          return false
+        }
       }
 
       // Stops filter
@@ -558,6 +607,8 @@ export default function SearchResult() {
     selectedDepartureTimes,
     selectedArrivalTimes,
     maxDuration,
+    computedDateFilterOptions,
+    selectedDateFilter,
   ])
 
   const best = useMemo(() => {
@@ -923,7 +974,7 @@ export default function SearchResult() {
         <div className="mb-4">
           <ScrollArea className="w-full whitespace-nowrap">
             <div className="flex space-x-2 sm:space-x-3 pb-2">
-              {dateFilterOptions.map((option) => (
+              {computedDateFilterOptions.map((option) => (
                 <Button
                   key={option.id}
                   variant="outline"
@@ -1100,9 +1151,8 @@ export default function SearchResult() {
                 </Card>
               ))
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p>No flights found matching your criteria.</p>
-                <p className="text-sm mt-2">Try adjusting your filters to see more options.</p>
+              <div className="min-h-[200px] flex items-center justify-center text-center py-16 text-gray-500">
+                <p className="text-base sm:text-lg font-medium">Flight not found</p>
               </div>
             )}
           </div>
